@@ -29,10 +29,10 @@ double g3;
 /// \brief Gama 4.
 double g4;
 
-/// brief Gama 5.
+/// \brief Gama 5.
 double g5;
 
-/// brief Gama 6.
+/// \brief Gama 6.
 double g6;
 
 /// \brief Gama 7.
@@ -40,10 +40,6 @@ double g7;
 
 /// \brief Gama 8.
 double g8;
-
-double                // density, velocity, pressure, speed of sound
-    dl, ul, pl, cl,   // in left region
-    dr, ur, pr, cr;   // in right region
 
 /// \brief Init gamas values.
 void init_gamas()
@@ -58,45 +54,12 @@ void init_gamas()
     g8 = GAMA - 1.0;
 }
 
-void initialize(
-    const int test,   // test number of input data set in e1rpex.ini
-    double &domlen,   // domain length
-    double &diaph1,   // position of diaphragm
-    int &cells,       // number of cells in evaluating exact solution
-    double &timeou,   // output time
-    double &pscale)   // normalizing factor for pressure and energy
-{
-    domlen = 1.0;     // same for all tests
-    cells = 1000;     // same for all tests
-    pscale = 1.0;     // same for all tests
-
-    double values[][8] = {
-        // diaph1, timeou, dl, ul, pl, dr, ur, pr
-        { 0, 0, 0, 0, 0, 0, 0, 0},  // no TEST 0
-        // TEST 1 (Modified Sod)
-        {0.3, 0.20, 1.0, 0.75, 1.0, 0.125, 0.0, 0.1},
-        // TEST 2 (123 problem)
-        {0.5, 0.15, 1.0, -2.0, 0.4, 1.0, 2.0, 0.4},
-        // TEST 3 (Left Woodward & Colella)
-        {0.5, 0.012, 1.0, 0.0, 1000.0, 1.0, 0.0, 0.01},
-        // TEST 4 (Collision of 2 shocks)
-        {0.4, 0.035, 5.99924, 19.5975, 460.894, 5.99242,
-            -6.19633, 46.0950},
-        // TEST 5 (Stationary contact)
-        {0.8, 0.012, 1.0, -19.59745, 1000.0, 1.0, -19.59745, 0.01}
-    };
-
-    diaph1 = values[test][0];
-    timeou = values[test][1];
-    dl = values[test][2];
-    ul = values[test][3];
-    pl = values[test][4];
-    dr = values[test][5];
-    ur = values[test][6];
-    pr = values[test][7];
-}
-
-void guessp(double &pm)
+/// \brief 
+///
+/// TODO:
+void guessp(double dl, double ul, double pl, double cl,
+            double dr, double ur, double pr, double cr,
+            double &pm)
 {
     // purpose: to provide a guessed value for pressure
     //          pm in the Star Region. The choice is made
@@ -165,10 +128,12 @@ void prefun(
     }
 }
 
-void starpu(
-    double &p,
-    double &u,
-    const double pscale)
+/// \brief
+///
+/// TODO:
+void starpu(double dl, double ul, double pl, double cl,
+            double dr, double ur, double pr, double cr,
+            double &p, double &u)
 {
     // purpose: to compute the solution for pressure and
     //          velocity in the Star Region
@@ -178,7 +143,7 @@ void starpu(
     double change, fl, fld, fr, frd, pold, pstart, udiff;
 
     // guessed value pstart is computed
-    guessp(pstart);
+    guessp(dl, ul, pl, cl, dr, ur, pr, cr, pstart);
     pold = pstart;
     udiff = ur - ul;
 
@@ -204,20 +169,15 @@ void starpu(
 
     // compute velocity in star region
     u = 0.5*(ul + ur + fr - fl);
-    cout << "----------------------------------------\n"
-         << "     Pressure           Velocity\n"
-         << "----------------------------------------\n"
-         << "     " << p/pscale << "\t\t" <<  u << '\n'
-         << "----------------------------------------" << endl;
 }
 
-void sample(
-    const double pm,
-    const double um,
-    const double s,
-    double &d,
-    double &u,
-    double &p)
+/// \brief
+///
+/// TODO:
+void sample(double dl, double ul, double pl, double cl,
+            double dr, double ur, double pr, double cr,
+            const double pm, const double um, const double s,
+            double &d, double &u, double &p)
 {
     // purpose: to sample the solution throughout the wave
     //          pattern. Pressure pm and velocity um in the
@@ -322,12 +282,12 @@ void sample(
 /// \param[in] dr - right side density
 /// \param[in] ur - right side velocity
 /// \param[in] pr - right side pressure
-/// \param[out] d - result density pointer
-/// \param[out] u - result velocity pointer
-/// \param[out] p - result pressure pointer 
+/// \param[out] d - result density reference
+/// \param[out] u - result velocity reference
+/// \param[out] p - result pressure reference
 void riemann(double dl, double ul, double pl,
              double dr, double ur, double pr,
-             double *d, double *u, double *p)
+             double &d, double &u, double &p)
 {
     double pm, um, cl, cr;
 
@@ -345,61 +305,12 @@ void riemann(double dl, double ul, double pl,
         exit(1);
     }    
 
-    // TODO: starpu, sample.
+    // Exact solution.
+    starpu(dl, ul, pl, cl, dr, ur, pr, cr, pm, um);
+    sample(dl, ul, pl, cl, dr, ur, pr, cr, pm, um, 0.0, d, u, p);
 }
 
-int main(int argc, char *argv[])
+int main()
 {
-    int cells;        // number of cells in evaluating exact solution
-    double
-        domlen,       // domain length
-        diaph1,       // position of diaphragm 1
-        timeou,       // output time
-        pscale,       // normalizing constant
-        ds, dx, pm, ps, s, um, us, xpos;
-
-    int test = 1;
-    if (argc > 1) {
-        // read first command line argument as test number
-        istringstream is(argv[1]);
-        is >> test;
-        if (test < 1 || test > 5) {
-            cerr << "test number not in range 1..5" << endl;
-            exit(1);
-        }
-    }
-
-    initialize(test, domlen, diaph1, cells, timeou, pscale);
-
-    init_gamas();
-
-    // compute sound speeds
-    cl = sqrt(GAMA*pl/dl);
-    cr = sqrt(GAMA*pr/dr);
-
-    // the pressure positivity condition is tested for
-    if (g4*(cl+cr) <= (ur-ul)) {
-
-        cerr << "the initial data is such that vacuum is generated"
-             << "\nstopping program" << endl;
-        exit(1);
-    }
-
-    // exact solution for pressure and velocity in star region is found
-    starpu(pm, um, pscale);
-    dx = domlen/double(cells);
-
-    // complete solution at time timeou is found
-    ofstream file("riemann.data");
-    for (int i = 0; i < cells; i++) {
-        xpos = (i - 0.5)*dx;
-        s  = (xpos - diaph1)/timeou;
-
-        // solution at point (x,t) = (xpos-diaph1, timeou) is found
-        sample(pm, um, s, ds, us, ps);
-
-        // exact solution profiles are written to data file
-        file << xpos << '\t' << ds << '\t' << us << '\t'
-             << ps/pscale << '\t' << ps/ds/g8/pscale << '\n';
-    }
+    return 0;
 }
