@@ -17,11 +17,46 @@ using namespace std;
 /// \brief Gama value.
 #define GAMA 1.4
 
-double g1, g2, g3, g4, g5, g6, g7, g8;
+/// \brief Gama 1.
+double g1;
+
+/// \brief Gama 2.
+double g2;
+
+/// \brief Gama 3.
+double g3;
+
+/// \brief Gama 4.
+double g4;
+
+/// brief Gama 5.
+double g5;
+
+/// brief Gama 6.
+double g6;
+
+/// \brief Gama 7.
+double g7;
+
+/// \brief Gama 8.
+double g8;
 
 double                // density, velocity, pressure, speed of sound
     dl, ul, pl, cl,   // in left region
     dr, ur, pr, cr;   // in right region
+
+/// \brief Init gamas values.
+void init_gamas()
+{
+    g1 = (GAMA - 1.0) / (2.0 * GAMA);
+    g2 = (GAMA + 1.0) / (2.0 * GAMA);
+    g3 = 2.0 * GAMA / (GAMA - 1.0);
+    g4 = 2.0 / (GAMA - 1.0);
+    g5 = 2.0 / (GAMA + 1.0);
+    g6 = (GAMA - 1.0) / (GAMA + 1.0);
+    g7 = (GAMA - 1.0) / 2.0;
+    g8 = GAMA - 1.0;
+}
 
 void initialize(
     const int test,   // test number of input data set in e1rpex.ini
@@ -279,6 +314,23 @@ void sample(
     }
 }
 
+/// \brief Riemann solver.
+///
+/// \param[in] dl - left side density
+/// \param[in] ul - left side velocity
+/// \param[in] pl - left  side pressure
+/// \param[in] dr - right side density
+/// \param[in] ur - right side velocity
+/// \param[in] pr - right side pressure
+/// \param[out] d - result density pointer
+/// \param[out] u - result velocity pointer
+/// \param[out] p - result pressure pointer 
+void riemann(double dl, double ul, double pl,
+             double dr, double ur, double pr,
+             double *d, double *u, double *p)
+{
+}
+
 int main(int argc, char *argv[])
 {
     int cells;        // number of cells in evaluating exact solution
@@ -302,15 +354,7 @@ int main(int argc, char *argv[])
 
     initialize(test, domlen, diaph1, cells, timeou, pscale);
 
-    // compute gamma related constants
-    g1 = (GAMA - 1.0)/(2.0*GAMA);
-    g2 = (GAMA + 1.0)/(2.0*GAMA);
-    g3 = 2.0*GAMA/(GAMA - 1.0);
-    g4 = 2.0/(GAMA - 1.0);
-    g5 = 2.0/(GAMA + 1.0);
-    g6 = (GAMA - 1.0)/(GAMA + 1.0);
-    g7 = (GAMA - 1.0)/2.0;
-    g8 = GAMA - 1.0;
+    init_gamas();
 
     // compute sound speeds
     cl = sqrt(GAMA*pl/dl);
