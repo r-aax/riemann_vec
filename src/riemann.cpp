@@ -329,6 +329,23 @@ void riemann(double dl, double ul, double pl,
              double dr, double ur, double pr,
              double *d, double *u, double *p)
 {
+    double pm, um, cl, cr;
+
+    pm = 0.0;
+
+    // Sound speeds.
+    cl = sqrt(GAMA * pl / dl);
+    cr = sqrt(GAMA * pr / dr);
+
+    // Check for vacuum.
+    if (g4 * (cl + cr) <= (ur - ul))
+    {
+
+        cerr << "VACUUM" << endl;
+        exit(1);
+    }    
+
+    // TODO: starpu, sample.
 }
 
 int main(int argc, char *argv[])
