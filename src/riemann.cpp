@@ -71,9 +71,9 @@ void init_gamas()
 /// \param[in] pr - right side pressure
 /// \param[in] cr - right side sound speed
 /// \param[out] pm - pressure
-void guessp(double dl, double ul, double pl, double cl,
-            double dr, double ur, double pr, double cr,
-            double &pm)
+static void guessp(double dl, double ul, double pl, double cl,
+                   double dr, double ur, double pr, double cr,
+                   double &pm)
 {
     double cup, gel, ger, pmax, pmin, ppv, pq, ptl, ptr, qmax, quser, um;
 
@@ -120,8 +120,8 @@ void guessp(double dl, double ul, double pl, double cl,
 /// and their first derivatives.
 ///
 /// TODO:
-void prefun(double &f, double &fd, double &p,
-            double &dk, double &pk, double &ck)
+static void prefun(double &f, double &fd, double &p,
+                   double &dk, double &pk, double &ck)
 {
     double ak, bk, pratio, qrt;
 
@@ -149,9 +149,9 @@ void prefun(double &f, double &fd, double &p,
 /// and velocity in the Star Region.
 ///
 /// TODO:
-void starpu(double dl, double ul, double pl, double cl,
-            double dr, double ur, double pr, double cr,
-            double &p, double &u)
+static void starpu(double dl, double ul, double pl, double cl,
+                   double dr, double ur, double pr, double cr,
+                   double &p, double &u)
 {
     const int nriter = 20;
     const double tolpre = 1.0e-6;
@@ -204,10 +204,10 @@ void starpu(double dl, double ul, double pl, double cl,
 /// values are d, u, p.
 ///
 /// TODO:
-void sample(double dl, double ul, double pl, double cl,
-            double dr, double ur, double pr, double cr,
-            const double pm, const double um, const double s,
-            double &d, double &u, double &p)
+static void sample(double dl, double ul, double pl, double cl,
+                   double dr, double ur, double pr, double cr,
+                   const double pm, const double um, const double s,
+                   double &d, double &u, double &p)
 {
     double c, cml, cmr, pml, pmr, shl, shr, sl, sr, stl, str;
 
@@ -364,17 +364,4 @@ void riemann(double dl, double ul, double pl,
     // Exact solution.
     starpu(dl, ul, pl, cl, dr, ur, pr, cr, pm, um);
     sample(dl, ul, pl, cl, dr, ur, pr, cr, pm, um, 0.0, d, u, p);
-}
-
-int main()
-{
-    init_gamas();
-
-    double d, u, p;
-
-    riemann(1.0, 3.0, 10.0, 1.0, 3.0, 10.0, d, u, p);
-
-    cout << d << " " << u << " " << p << endl;
-
-    return 0;
 }
