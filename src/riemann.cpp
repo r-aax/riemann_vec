@@ -1,10 +1,10 @@
-/* riemann.cpp
- *
- * Exact Riemann solver for the Euler equations in one dimension
- * Translated from the Fortran code er1pex.f and er1pex.ini
- * by Dr. E.F. Toro downloaded from
- * http://www.numeritek.com/numerica_software.html#freesample
- */
+/// \file
+/// \brief Riemann solver.
+///
+/// Exact Riemann solver for the Euler equations in one dimension
+/// Translated from the Fortran code er1pex.f and er1pex.ini
+/// by Dr. E.F. Toro downloaded from
+/// http://www.numeritek.com/numerica_software.html#freesample
 
 #include <cmath>
 #include <cstdlib>
@@ -14,9 +14,8 @@
 #include <string>
 using namespace std;
 
-// global variables
-
-double gama;          // ratio of specific heats
+/// \brief Gama value.
+#define GAMA 1.4
 
 double g1, g2, g3, g4, g5, g6, g7, g8;
 
@@ -36,31 +35,30 @@ void initialize(
     cells = 1000;     // same for all tests
     pscale = 1.0;     // same for all tests
 
-    double values[][9] = {
-        // diaph1, gama, timeou, dl, ul, pl, dr, ur, pr
-        { 0, 0, 0, 0, 0, 0, 0, 0, 0},  // no TEST 0
+    double values[][8] = {
+        // diaph1, timeou, dl, ul, pl, dr, ur, pr
+        { 0, 0, 0, 0, 0, 0, 0, 0},  // no TEST 0
         // TEST 1 (Modified Sod)
-        {0.3, 1.4, 0.20, 1.0, 0.75, 1.0, 0.125, 0.0, 0.1},
+        {0.3, 0.20, 1.0, 0.75, 1.0, 0.125, 0.0, 0.1},
         // TEST 2 (123 problem)
-        {0.5, 1.4, 0.15, 1.0, -2.0, 0.4, 1.0, 2.0, 0.4},
+        {0.5, 0.15, 1.0, -2.0, 0.4, 1.0, 2.0, 0.4},
         // TEST 3 (Left Woodward & Colella)
-        {0.5, 1.4, 0.012, 1.0, 0.0, 1000.0, 1.0, 0.0, 0.01},
+        {0.5, 0.012, 1.0, 0.0, 1000.0, 1.0, 0.0, 0.01},
         // TEST 4 (Collision of 2 shocks)
-        {0.4, 1.4, 0.035, 5.99924, 19.5975, 460.894, 5.99242,
+        {0.4, 0.035, 5.99924, 19.5975, 460.894, 5.99242,
             -6.19633, 46.0950},
         // TEST 5 (Stationary contact)
-        {0.8, 1.4, 0.012, 1.0, -19.59745, 1000.0, 1.0, -19.59745, 0.01}
+        {0.8, 0.012, 1.0, -19.59745, 1000.0, 1.0, -19.59745, 0.01}
     };
 
     diaph1 = values[test][0];
-    gama = values[test][1];
-    timeou = values[test][2];
-    dl = values[test][3];
-    ul = values[test][4];
-    pl = values[test][5];
-    dr = values[test][6];
-    ur = values[test][7];
-    pr = values[test][8];
+    timeou = values[test][1];
+    dl = values[test][2];
+    ul = values[test][3];
+    pl = values[test][4];
+    dr = values[test][5];
+    ur = values[test][6];
+    pr = values[test][7];
 }
 
 void guessp(double &pm)
@@ -209,7 +207,7 @@ void sample(
                 stl = um - cml;
                 if (s > stl) {
                     // sampled point is star left state
-                    d = dl*pow(pm/pl, 1.0/gama);
+                    d = dl*pow(pm/pl, 1.0/GAMA);
                     u = um;
                     p = pm;
                 } else {
@@ -266,7 +264,7 @@ void sample(
                 str = um + cmr;
                 if (s <= str) {
                     // sampled point is star right state
-                    d = dr*pow(pm/pr, 1.0/gama);
+                    d = dr*pow(pm/pr, 1.0/GAMA);
                     u = um;
                     p = pm;
                 } else {
@@ -305,18 +303,18 @@ int main(int argc, char *argv[])
     initialize(test, domlen, diaph1, cells, timeou, pscale);
 
     // compute gamma related constants
-    g1 = (gama - 1.0)/(2.0*gama);
-    g2 = (gama + 1.0)/(2.0*gama);
-    g3 = 2.0*gama/(gama - 1.0);
-    g4 = 2.0/(gama - 1.0);
-    g5 = 2.0/(gama + 1.0);
-    g6 = (gama - 1.0)/(gama + 1.0);
-    g7 = (gama - 1.0)/2.0;
-    g8 = gama - 1.0;
+    g1 = (GAMA - 1.0)/(2.0*GAMA);
+    g2 = (GAMA + 1.0)/(2.0*GAMA);
+    g3 = 2.0*GAMA/(GAMA - 1.0);
+    g4 = 2.0/(GAMA - 1.0);
+    g5 = 2.0/(GAMA + 1.0);
+    g6 = (GAMA - 1.0)/(GAMA + 1.0);
+    g7 = (GAMA - 1.0)/2.0;
+    g8 = GAMA - 1.0;
 
     // compute sound speeds
-    cl = sqrt(gama*pl/dl);
-    cr = sqrt(gama*pr/dr);
+    cl = sqrt(GAMA*pl/dl);
+    cr = sqrt(GAMA*pr/dr);
 
     // the pressure positivity condition is tested for
     if (g4*(cl+cr) <= (ur-ul)) {
