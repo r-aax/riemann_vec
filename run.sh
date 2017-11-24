@@ -3,5 +3,11 @@
 set -x
 
 rm -f riemann.out
-g++ ./src/*.cpp ./test/test.cpp -I./src -o riemann.out
+
+g++ \
+    ./src/*.cpp ./test/test.cpp \
+    -I./src \
+    -lm -fopenmp \
+    -o riemann.out
+
 ./riemann.out

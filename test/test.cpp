@@ -10,6 +10,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <omp.h>
 using namespace std;
 
 /// \brief Test data.
@@ -29,7 +30,9 @@ int main()
 
     init_gamas();
 
-    cout << "test begin " << test_cases << " test cases" << endl;
+    cout << "test begin : " << test_cases << " test cases" << endl;
+
+    double t_start = omp_get_wtime();
 
     for (int i = 0; i < test_cases; i++)
     {
@@ -51,7 +54,10 @@ int main()
         }
     }
 
-    cout << "test done" << endl;
+    double t_end = omp_get_wtime();
+    double t_len = t_end - t_start;
+
+    cout << "test done : " << (t_end - t_start) << " seconds" << endl;
 
     return 0;
 }
