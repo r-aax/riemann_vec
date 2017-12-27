@@ -124,6 +124,17 @@ void check()
     }
 }
 
+/// \brief Clean result data.
+void clean()
+{
+    for (int i = 0; i < test_cases; i++)
+    {
+        ds[i] = 0.0;
+        us[i] = 0.0;
+        ps[i] = 0.0;
+    }
+}
+
 /// \brief Run riemann solver test and print information.
 ///
 /// \param[in] init - init function
@@ -136,6 +147,7 @@ void run(void (*init)(),
                         float *, float *, float *),
          string str)
 {
+    clean();
     init();
     double t_start = omp_get_wtime();
     solver(test_cases, dls, uls, pls, drs, urs, prs, ds, us, ps);

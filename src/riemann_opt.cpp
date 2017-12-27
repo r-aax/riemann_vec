@@ -366,6 +366,32 @@ static void riemann(float dl, float ul, float pl,
     sample(dl, ul, pl, cl, dr, ur, pr, cr, pm, um, 0.0, d, u, p);
 }
 
+/// \brief Riemann solver for 16 cases.
+///
+/// \param[in] dl - left side density
+/// \param[in] ul - left side velocity
+/// \param[in] pl - left  side pressure
+/// \param[in] dr - right side density
+/// \param[in] ur - right side velocity
+/// \param[in] pr - right side pressure
+/// \param[out] d - result density reference
+/// \param[out] u - result velocity reference
+/// \param[out] p - result pressure reference
+static void riemann_16(float *dl, float *ul, float *pl,
+                       float *dr, float *ur, float *pr,
+                       float *d, float *u, float *p)
+{
+    float d_, u_, p_;
+
+    for (int i = 0; i < 16; i++)
+    {
+        riemann(dl[i], ul[i], pl[i], dr[i], ur[i], pr[i], d_, u_, p_);
+        d[i] = d_;
+        u[i] = u_;
+        p[i] = p_;
+    }
+}
+
 /// \brief Riemann solver.
 ///
 /// \param[in] c - cases count
@@ -385,7 +411,17 @@ void riemann_opt(int c,
 {
     float d_, u_, p_;
 
-    for (int i = 0; i < c; i++)
+    int c_tail = c & 0xF;
+    int c_without_tail = c - c_tail;
+
+    // Main body.
+    for (int i = 0; i < c_without_tail; i += 16)
+    {
+        riemann_16(&dl[i], &ul[i], &pl[i], &dr[i], &ur[i], &pr[i], &d[i], &u[i], &p[i]);
+    }
+
+    // Tail.
+    for (int i = c_without_tail; i < c; i++)
     {
         riemann(dl[i], ul[i], pl[i], dr[i], ur[i], pr[i], d_, u_, p_);
         d[i] = d_;
