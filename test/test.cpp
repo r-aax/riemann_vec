@@ -13,18 +13,82 @@
 #include <omp.h>
 using namespace std;
 
-/// \brief Test data.
-double data[][9] =
+/// \brief Test data <c>dl</c>.
+double dls[] =
 {
 
-#include "test_data.inc"
+#include "test_data_dl.inc"
+
+};
+
+/// \brief Test data <c>ul</c>.
+double uls[] =
+{
+
+#include "test_data_ul.inc"
+
+};
+
+/// \brief Test data <c>pl</c>.
+double pls[] =
+{
+
+#include "test_data_pl.inc"
+
+};
+
+/// \brief Test data <c>dr</c>.
+double drs[] =
+{
+
+#include "test_data_dr.inc"
+
+};
+
+/// \brief Test data <c>ur</c>.
+double urs[] =
+{
+
+#include "test_data_ur.inc"
+
+};
+
+/// \brief Test data <c>pr</c>.
+double prs[] =
+{
+
+#include "test_data_pr.inc"
+
+};
+
+/// \brief Test data <c>d</c>.
+double ds[] =
+{
+
+#include "test_data_d.inc"
+
+};
+
+/// \brief Test data <c>u</c>.
+double us[] =
+{
+
+#include "test_data_u.inc"
+
+};
+
+/// \brief Test data <c>p</c>.
+double ps[] =
+{
+
+#include "test_data_p.inc"
 
 };
 
 /// \brief Test.
 int main()
 {
-    int test_cases = sizeof(data) / (sizeof(data[0]));
+    int test_cases = sizeof(dls) / (sizeof(dls[0]));
     double d, u, p;
     double e = 1e-4;
 
@@ -36,19 +100,19 @@ int main()
 
     for (int i = 0; i < test_cases; i++)
     {
-        riemann(data[i][0], data[i][1], data[i][2],
-                data[i][3], data[i][4], data[i][5],
+        riemann(dls[i], uls[i], pls[i],
+                drs[i], urs[i], prs[i],
                 d, u, p);
 
-        double diff_d = abs(d - data[i][6]);
-        double diff_u = abs(u - data[i][7]);
-        double diff_p = abs(p - data[i][8]);
+        double diff_d = abs(d - ds[i]);
+        double diff_u = abs(u - us[i]);
+        double diff_p = abs(p - ps[i]);
 
         if (!(diff_d < e) && (diff_u < e) && (diff_p < e))
         {
             cerr << "error : " << endl;
             cerr << "  res : " << d << ", " << u << ", " << p << endl;
-            cerr << "right : " << data[i][6] << ", " << data[i][7] << ", " << data[i][8] << endl; 
+            cerr << "right : " << ds[i] << ", " << us[i] << ", " << ps[i] << endl; 
             cerr << " diff : " << diff_d << ", " << diff_u << ", " << diff_p << endl;
             exit(1);
         }
