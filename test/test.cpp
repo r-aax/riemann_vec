@@ -19,7 +19,7 @@ using namespace std;
 #define REPEATS 5
 
 /// \brief Test data <c>dl</c>.
-double dls[] =
+float dls[] =
 {
 
 #include "test_data_dl.inc"
@@ -27,7 +27,7 @@ double dls[] =
 };
 
 /// \brief Test data <c>ul</c>.
-double uls[] =
+float uls[] =
 {
 
 #include "test_data_ul.inc"
@@ -35,7 +35,7 @@ double uls[] =
 };
 
 /// \brief Test data <c>pl</c>.
-double pls[] =
+float pls[] =
 {
 
 #include "test_data_pl.inc"
@@ -43,7 +43,7 @@ double pls[] =
 };
 
 /// \brief Test data <c>dr</c>.
-double drs[] =
+float drs[] =
 {
 
 #include "test_data_dr.inc"
@@ -51,7 +51,7 @@ double drs[] =
 };
 
 /// \brief Test data <c>ur</c>.
-double urs[] =
+float urs[] =
 {
 
 #include "test_data_ur.inc"
@@ -59,7 +59,7 @@ double urs[] =
 };
 
 /// \brief Test data <c>pr</c>.
-double prs[] =
+float prs[] =
 {
 
 #include "test_data_pr.inc"
@@ -67,7 +67,7 @@ double prs[] =
 };
 
 /// \brief Test data <c>d</c>.
-double ds_orig[] =
+float ds_orig[] =
 {
 
 #include "test_data_d.inc"
@@ -75,7 +75,7 @@ double ds_orig[] =
 };
 
 /// \brief Test data <c>u</c>.
-double us_orig[] =
+float us_orig[] =
 {
 
 #include "test_data_u.inc"
@@ -83,7 +83,7 @@ double us_orig[] =
 };
 
 /// \brief Test data <c>p</c>.
-double ps_orig[] =
+float ps_orig[] =
 {
 
 #include "test_data_p.inc"
@@ -91,13 +91,13 @@ double ps_orig[] =
 };
 
 /// \brief Calculated result <c>d</c>.
-double *ds;
+float *ds;
 
 /// \brief Calculated result <c>u</c>.
-double *us;
+float *us;
 
 /// \brief Calculated result <c>p</c>.
-double *ps;
+float *ps;
 
 /// \brief Test cases count.
 int test_cases = sizeof(dls) / sizeof(dls[0]);
@@ -105,13 +105,13 @@ int test_cases = sizeof(dls) / sizeof(dls[0]);
 /// \brief Check function.
 void check()
 {
-    double e = 1e-4;
+    float e = 1e-4;
 
     for (int i = 0; i < test_cases; i++)
     {
-        double diff_d = abs(ds[i] - ds_orig[i]);
-        double diff_u = abs(us[i] - us_orig[i]);
-        double diff_p = abs(ps[i] - ps_orig[i]);
+        float diff_d = abs(ds[i] - ds_orig[i]);
+        float diff_u = abs(us[i] - us_orig[i]);
+        float diff_p = abs(ps[i] - ps_orig[i]);
 
         if (!(diff_d < e) && (diff_u < e) && (diff_p < e))
         {
@@ -131,9 +131,9 @@ void check()
 /// \param[in] str - description
 void run(void (*init)(),
          void (*solver)(int,
-                        double *, double *, double *,
-                        double *, double *, double *,
-                        double *, double *, double *),
+                        float *, float *, float *,
+                        float *, float *, float *,
+                        float *, float *, float *),
          string str)
 {
     init();
@@ -157,9 +157,9 @@ int main()
         exit(1);
     }
 
-    ds = new double[test_cases];
-    us = new double[test_cases];
-    ps = new double[test_cases];
+    ds = new float[test_cases];
+    us = new float[test_cases];
+    ps = new float[test_cases];
 
     init_gamas();
 

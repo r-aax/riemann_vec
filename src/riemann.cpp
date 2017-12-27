@@ -18,28 +18,28 @@ using namespace std;
 #define GAMA 1.4
 
 /// \brief Gama 1.
-static double g1;
+static float g1;
 
 /// \brief Gama 2.
-static double g2;
+static float g2;
 
 /// \brief Gama 3.
-static double g3;
+static float g3;
 
 /// \brief Gama 4.
-static double g4;
+static float g4;
 
 /// \brief Gama 5.
-static double g5;
+static float g5;
 
 /// \brief Gama 6.
-static double g6;
+static float g6;
 
 /// \brief Gama 7.
-static double g7;
+static float g7;
 
 /// \brief Gama 8.
-static double g8;
+static float g8;
 
 /// \brief Init gamas values.
 void init_gamas()
@@ -71,20 +71,20 @@ void init_gamas()
 /// \param[in] pr - right side pressure
 /// \param[in] cr - right side sound speed
 /// \param[out] pm - pressure
-static void guessp(double dl, double ul, double pl, double cl,
-                   double dr, double ur, double pr, double cr,
-                   double &pm)
+static void guessp(float dl, float ul, float pl, float cl,
+                   float dr, float ur, float pr, float cr,
+                   float &pm)
 {
-    double cup, gel, ger, pmax, pmin, ppv, pq, ptl, ptr, qmax, quser, um;
+    float cup, gel, ger, pmax, pmin, ppv, pq, ptl, ptr, qmax, quser, um;
 
     quser = 2.0;
 
     // Compute guess pressure from PVRS Riemann solver.
     cup = 0.25 * (dl + dr) * (cl + cr);
     ppv = 0.5 * (pl + pr) + 0.5 * (ul - ur) * cup;
-    ppv = max(0.0, ppv);
-    pmin = min(pl,  pr);
-    pmax = max(pl,  pr);
+    ppv = (ppv > 0.0) ? ppv : 0.0;
+    pmin = (pl < pr) ? pl : pr;
+    pmax = (pl > pr) ? pl : pr;
     qmax = pmax / pmin;
 
     if ((qmax <= quser) && (pmin <= ppv) && (ppv <= pmax))
@@ -120,10 +120,10 @@ static void guessp(double dl, double ul, double pl, double cl,
 /// and their first derivatives.
 ///
 /// TODO:
-static void prefun(double &f, double &fd, double &p,
-                   double &dk, double &pk, double &ck)
+static void prefun(float &f, float &fd, float &p,
+                   float &dk, float &pk, float &ck)
 {
-    double ak, bk, pratio, qrt;
+    float ak, bk, pratio, qrt;
 
     if (p <= pk)
     {
@@ -149,13 +149,13 @@ static void prefun(double &f, double &fd, double &p,
 /// and velocity in the Star Region.
 ///
 /// TODO:
-static void starpu(double dl, double ul, double pl, double cl,
-                   double dr, double ur, double pr, double cr,
-                   double &p, double &u)
+static void starpu(float dl, float ul, float pl, float cl,
+                   float dr, float ur, float pr, float cr,
+                   float &p, float &u)
 {
     const int nriter = 20;
-    const double tolpre = 1.0e-6;
-    double change, fl, fld, fr, frd, pold, pstart, udiff;
+    const float tolpre = 1.0e-6;
+    float change, fl, fld, fr, frd, pold, pstart, udiff;
 
     // Guessed value pstart is computed.
     guessp(dl, ul, pl, cl, dr, ur, pr, cr, pstart);
@@ -204,12 +204,12 @@ static void starpu(double dl, double ul, double pl, double cl,
 /// values are d, u, p.
 ///
 /// TODO:
-static void sample(double dl, double ul, double pl, double cl,
-                   double dr, double ur, double pr, double cr,
-                   const double pm, const double um, const double s,
-                   double &d, double &u, double &p)
+static void sample(float dl, float ul, float pl, float cl,
+                   float dr, float ur, float pr, float cr,
+                   const float pm, const float um, const float s,
+                   float &d, float &u, float &p)
 {
-    double c, cml, cmr, pml, pmr, shl, shr, sl, sr, stl, str;
+    float c, cml, cmr, pml, pmr, shl, shr, sl, sr, stl, str;
 
     if (s <= um)
     {
@@ -341,11 +341,11 @@ static void sample(double dl, double ul, double pl, double cl,
 /// \param[out] d - result density reference
 /// \param[out] u - result velocity reference
 /// \param[out] p - result pressure reference
-static void riemann(double dl, double ul, double pl,
-                    double dr, double ur, double pr,
-                    double &d, double &u, double &p)
+static void riemann(float dl, float ul, float pl,
+                    float dr, float ur, float pr,
+                    float &d, float &u, float &p)
 {
-    double pm, um, cl, cr;
+    float pm, um, cl, cr;
 
     pm = 0.0;
 
@@ -379,11 +379,11 @@ static void riemann(double dl, double ul, double pl,
 /// \param[out] u - result velocity reference
 /// \param[out] p - result pressure reference
 void riemann(int c,
-             double *dl, double *ul, double *pl,
-             double *dr, double *ur, double *pr,
-             double *d, double *u, double *p)
+             float *dl, float *ul, float *pl,
+             float *dr, float *ur, float *pr,
+             float *d, float *u, float *p)
 {
-    double d_, u_, p_;
+    float d_, u_, p_;
 
     for (int i = 0; i < c; i++)
     {

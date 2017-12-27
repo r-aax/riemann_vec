@@ -6,8 +6,8 @@
 
 void init_gamas_opt();
 void riemann_opt(int c,
-                 double *dl, double *ul, double *pl,
-                 double *dr, double *ur, double *pr,
-                 double *d, double *u, double *p);
+                 float *dl, float *ul, float *pl,
+                 float *dr, float *ur, float *pr,
+                 float *d, float *u, float *p);
 
 #endif
