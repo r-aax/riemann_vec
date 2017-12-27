@@ -62,7 +62,7 @@ double prs[] =
 };
 
 /// \brief Test data <c>d</c>.
-double ds[] =
+double ds_orig[] =
 {
 
 #include "test_data_d.inc"
@@ -70,7 +70,7 @@ double ds[] =
 };
 
 /// \brief Test data <c>u</c>.
-double us[] =
+double us_orig[] =
 {
 
 #include "test_data_u.inc"
@@ -78,7 +78,7 @@ double us[] =
 };
 
 /// \brief Test data <c>p</c>.
-double ps[] =
+double ps_orig[] =
 {
 
 #include "test_data_p.inc"
@@ -88,9 +88,32 @@ double ps[] =
 /// \brief Test.
 int main()
 {
-    int test_cases = sizeof(dls) / (sizeof(dls[0]));
-    double d, u, p;
+    int dls_count = sizeof(dls) / (sizeof(dls[0]));
+    int uls_count = sizeof(uls) / (sizeof(uls[0]));
+    int pls_count = sizeof(pls) / (sizeof(pls[0]));
+    int drs_count = sizeof(drs) / (sizeof(drs[0]));
+    int urs_count = sizeof(urs) / (sizeof(urs[0]));
+    int prs_count = sizeof(prs) / (sizeof(prs[0]));
+    int ds_count = sizeof(ds_orig) / (sizeof(ds_orig[0]));
+    int us_count = sizeof(us_orig) / (sizeof(us_orig[0]));
+    int ps_count = sizeof(ps_orig) / (sizeof(ps_orig[0]));
+
+    if (!((dls_count == uls_count) && (uls_count == pls_count)
+          && (pls_count == drs_count) && (drs_count == urs_count)
+          && (urs_count == prs_count) && (prs_count == ds_count)
+          && (ds_count == us_count) && (us_count == ps_count)))
+    {
+        cout << "error : test data corrupted" << endl;
+        exit(1);
+    }
+
+    int test_cases = dls_count;
+    double *ds, *us, *ps;
     double e = 1e-4;
+
+    ds = new double[test_cases];
+    us = new double[test_cases];
+    ps = new double[test_cases];
 
     init_gamas();
 
@@ -98,29 +121,40 @@ int main()
 
     double t_start = omp_get_wtime();
 
+    // Calculations loop.
     for (int i = 0; i < test_cases; i++)
     {
+        double d, u, p;
+
         riemann(dls[i], uls[i], pls[i],
                 drs[i], urs[i], prs[i],
                 d, u, p);
 
-        double diff_d = abs(d - ds[i]);
-        double diff_u = abs(u - us[i]);
-        double diff_p = abs(p - ps[i]);
+        ds[i] = d;
+        us[i] = u;
+        ps[i] = p;
+    }
+
+    double t_end = omp_get_wtime();
+
+    // Check loop.
+    for (int i = 0; i < test_cases; i++)
+    {
+        double diff_d = abs(ds[i] - ds_orig[i]);
+        double diff_u = abs(us[i] - us_orig[i]);
+        double diff_p = abs(ps[i] - ps_orig[i]);
 
         if (!(diff_d < e) && (diff_u < e) && (diff_p < e))
         {
             cerr << "error : " << endl;
-            cerr << "  res : " << d << ", " << u << ", " << p << endl;
-            cerr << "right : " << ds[i] << ", " << us[i] << ", " << ps[i] << endl; 
+            cerr << "  res : " << ds[i] << ", " << us[i] << ", " << ps[i] << endl;
+            cerr << "right : " << ds_orig[i] << ", " << us_orig[i] << ", " << ps_orig[i] << endl; 
             cerr << " diff : " << diff_d << ", " << diff_u << ", " << diff_p << endl;
             exit(1);
         }
     }
 
-    double t_end = omp_get_wtime();
     double t_len = t_end - t_start;
-
     cout << "test done : " << (t_end - t_start) << " seconds" << endl;
 
     return 0;
