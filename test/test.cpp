@@ -10,8 +10,12 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <iomanip>
 #include <omp.h>
 using namespace std;
+
+/// \brief Repeats count.
+#define REPEATS 5
 
 /// \brief Test data <c>dl</c>.
 double dls[] =
@@ -85,59 +89,23 @@ double ps_orig[] =
 
 };
 
-/// \brief Test.
-int main()
+/// \brief Calculated result <c>d</c>.
+double *ds;
+
+/// \brief Calculated result <c>u</c>.
+double *us;
+
+/// \brief Calculated result <c>p</c>.
+double *ps;
+
+/// \brief Test cases count.
+int test_cases = sizeof(dls) / sizeof(dls[0]);
+
+/// \brief Check function.
+void check()
 {
-    int dls_count = sizeof(dls) / (sizeof(dls[0]));
-    int uls_count = sizeof(uls) / (sizeof(uls[0]));
-    int pls_count = sizeof(pls) / (sizeof(pls[0]));
-    int drs_count = sizeof(drs) / (sizeof(drs[0]));
-    int urs_count = sizeof(urs) / (sizeof(urs[0]));
-    int prs_count = sizeof(prs) / (sizeof(prs[0]));
-    int ds_count = sizeof(ds_orig) / (sizeof(ds_orig[0]));
-    int us_count = sizeof(us_orig) / (sizeof(us_orig[0]));
-    int ps_count = sizeof(ps_orig) / (sizeof(ps_orig[0]));
-
-    if (!((dls_count == uls_count) && (uls_count == pls_count)
-          && (pls_count == drs_count) && (drs_count == urs_count)
-          && (urs_count == prs_count) && (prs_count == ds_count)
-          && (ds_count == us_count) && (us_count == ps_count)))
-    {
-        cout << "error : test data corrupted" << endl;
-        exit(1);
-    }
-
-    int test_cases = dls_count;
-    double *ds, *us, *ps;
     double e = 1e-4;
 
-    ds = new double[test_cases];
-    us = new double[test_cases];
-    ps = new double[test_cases];
-
-    init_gamas();
-
-    cout << "test begin : " << test_cases << " test cases" << endl;
-
-    double t_start = omp_get_wtime();
-
-    // Calculations loop.
-    for (int i = 0; i < test_cases; i++)
-    {
-        double d, u, p;
-
-        riemann(dls[i], uls[i], pls[i],
-                drs[i], urs[i], prs[i],
-                d, u, p);
-
-        ds[i] = d;
-        us[i] = u;
-        ps[i] = p;
-    }
-
-    double t_end = omp_get_wtime();
-
-    // Check loop.
     for (int i = 0; i < test_cases; i++)
     {
         double diff_d = abs(ds[i] - ds_orig[i]);
@@ -153,9 +121,67 @@ int main()
             exit(1);
         }
     }
+}
 
+/// \brief Run riemann solver test and print information.
+///
+/// \param[in] init - init function
+/// \param[in] solver - solver function
+/// \param[in] str - description
+void run(void (*init)(),
+         void (*solver)(int,
+                        double *, double *, double *,
+                        double *, double *, double *,
+                        double *, double *, double *),
+         string str)
+{
+    init();
+    double t_start = omp_get_wtime();
+    solver(test_cases, dls, uls, pls, drs, urs, prs, ds, us, ps);
+    double t_end = omp_get_wtime();
+    check();    
     double t_len = t_end - t_start;
-    cout << "test done : " << (t_end - t_start) << " seconds" << endl;
+    cout << setw(15) << str << " ~ " << (t_end - t_start) << " seconds" << endl;
+}
+
+/// \brief Test.
+int main()
+{
+    if (!((sizeof(dls) == sizeof(uls)) && (sizeof(uls) == sizeof(pls))
+          && (sizeof(pls) == sizeof(drs)) && (sizeof(drs) == sizeof(urs))
+          && (sizeof(urs) == sizeof(prs)) && (sizeof(prs) == sizeof(ds_orig))
+          && (sizeof(ds_orig) == sizeof(us_orig)) && (sizeof(us_orig) == sizeof(ps_orig))))
+    {
+        cout << "error : test data corrupted" << endl;
+        exit(1);
+    }
+
+    ds = new double[test_cases];
+    us = new double[test_cases];
+    ps = new double[test_cases];
+
+    init_gamas();
+
+    cout << "test begin : " << test_cases << " test cases" << endl;
+
+    for (int i = 0; i < REPEATS; i++)
+    {
+        run(init_gamas, riemann, "not optimized");
+    }
+
+    cout << "----------" << endl;
+
+    for (int i = 0; i < REPEATS; i++)
+    {
+        run(init_gamas, riemann, "optimized");
+    }
+
+    cout << "test done" << endl;
+
+    // Free memory.
+    delete ds;
+    delete us;
+    delete ps;
 
     return 0;
 }

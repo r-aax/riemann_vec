@@ -341,9 +341,9 @@ static void sample(double dl, double ul, double pl, double cl,
 /// \param[out] d - result density reference
 /// \param[out] u - result velocity reference
 /// \param[out] p - result pressure reference
-void riemann(double dl, double ul, double pl,
-             double dr, double ur, double pr,
-             double &d, double &u, double &p)
+static void riemann(double dl, double ul, double pl,
+                    double dr, double ur, double pr,
+                    double &d, double &u, double &p)
 {
     double pm, um, cl, cr;
 
@@ -364,4 +364,32 @@ void riemann(double dl, double ul, double pl,
     // Exact solution.
     starpu(dl, ul, pl, cl, dr, ur, pr, cr, pm, um);
     sample(dl, ul, pl, cl, dr, ur, pr, cr, pm, um, 0.0, d, u, p);
+}
+
+/// \brief Riemann solver.
+///
+/// \param[in] c - cases count
+/// \param[in] dl - left side density
+/// \param[in] ul - left side velocity
+/// \param[in] pl - left  side pressure
+/// \param[in] dr - right side density
+/// \param[in] ur - right side velocity
+/// \param[in] pr - right side pressure
+/// \param[out] d - result density reference
+/// \param[out] u - result velocity reference
+/// \param[out] p - result pressure reference
+void riemann(int c,
+             double *dl, double *ul, double *pl,
+             double *dr, double *ur, double *pr,
+             double *d, double *u, double *p)
+{
+    double d_, u_, p_;
+
+    for (int i = 0; i < c; i++)
+    {
+        riemann(dl[i], ul[i], pl[i], dr[i], ur[i], pr[i], d_, u_, p_);
+        d[i] = d_;
+        u[i] = u_;
+        p[i] = p_;
+    }
 }
