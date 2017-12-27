@@ -4,6 +4,7 @@
 /// Test for riemann.
 
 #include "riemann.h"
+#include "riemann_opt.h"
 #include <cmath>
 #include <cstdlib>
 #include <fstream>
@@ -173,7 +174,7 @@ int main()
 
     for (int i = 0; i < REPEATS; i++)
     {
-        run(init_gamas, riemann, "optimized");
+        run(init_gamas_opt, riemann_opt, "optimized");
     }
 
     cout << "test done" << endl;

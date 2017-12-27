@@ -42,7 +42,7 @@ static double g7;
 static double g8;
 
 /// \brief Init gamas values.
-void init_gamas()
+void init_gamas_opt()
 {
     g1 = (GAMA - 1.0) / (2.0 * GAMA);
     g2 = (GAMA + 1.0) / (2.0 * GAMA);
@@ -378,10 +378,10 @@ static void riemann(double dl, double ul, double pl,
 /// \param[out] d - result density reference
 /// \param[out] u - result velocity reference
 /// \param[out] p - result pressure reference
-void riemann(int c,
-             double *dl, double *ul, double *pl,
-             double *dr, double *ur, double *pr,
-             double *d, double *u, double *p)
+void riemann_opt(int c,
+                 double *dl, double *ul, double *pl,
+                 double *dr, double *ur, double *pr,
+                 double *d, double *u, double *p)
 {
     double d_, u_, p_;
 
