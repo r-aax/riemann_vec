@@ -105,7 +105,7 @@ int test_cases = sizeof(dls) / sizeof(dls[0]);
 /// \brief Check function.
 void check()
 {
-    float e = 1e-4;
+    float e = 1e-3;
 
     for (int i = 0; i < test_cases; i++)
     {
@@ -113,7 +113,7 @@ void check()
         float diff_u = abs(us[i] - us_orig[i]);
         float diff_p = abs(ps[i] - ps_orig[i]);
 
-        if (!(diff_d < e) && (diff_u < e) && (diff_p < e))
+        if (!((diff_d < e) && (diff_u < e) && (diff_p < e)))
         {
             cerr << "error : " << endl;
             cerr << "  res : " << ds[i] << ", " << us[i] << ", " << ps[i] << endl;
