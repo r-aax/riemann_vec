@@ -4,7 +4,6 @@
 /// Test for riemann.
 
 #include "riemann.h"
-#include "riemann_opt.h"
 #include <cmath>
 #include <cstdlib>
 #include <fstream>
@@ -137,20 +136,24 @@ void clean()
 
 /// \brief Run riemann solver test and print information.
 ///
-/// \param[in] init - init function
 /// \param[in] solver - solver function
 /// \param[in] str - description
-void run(void (*init)(),
-         void (*solver)(int,
+void run(void (*solver)(int,
                         float *, float *, float *,
                         float *, float *, float *,
                         float *, float *, float *),
          string str)
 {
+
+/// \brief Inner repeats count.
+#define INNER_REPEATS 10
+
     clean();
-    init();
     double t_start = omp_get_wtime();
-    solver(test_cases, dls, uls, pls, drs, urs, prs, ds, us, ps);
+    for (int i = 0; i < INNER_REPEATS; i++)
+    {
+        solver(test_cases, dls, uls, pls, drs, urs, prs, ds, us, ps);
+    }
     double t_end = omp_get_wtime();
     check();    
     double t_len = t_end - t_start;
@@ -173,20 +176,18 @@ int main()
     us = new float[test_cases];
     ps = new float[test_cases];
 
-    init_gamas();
-
     cout << "test begin : " << test_cases << " test cases" << endl;
 
     for (int i = 0; i < REPEATS; i++)
     {
-        run(init_gamas, riemann, "not optimized");
+        run(riemann, "not optimized");
     }
 
     cout << "----------" << endl;
 
     for (int i = 0; i < REPEATS; i++)
     {
-        run(init_gamas_opt, riemann_opt, "optimized");
+        run(riemann_opt, "optimized");
     }
 
     cout << "test done" << endl;

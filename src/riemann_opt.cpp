@@ -12,47 +12,8 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include "riemann.h"
 using namespace std;
-
-/// \brief Gama value.
-#define GAMA 1.4
-
-/// \brief Gama 1.
-static float g1;
-
-/// \brief Gama 2.
-static float g2;
-
-/// \brief Gama 3.
-static float g3;
-
-/// \brief Gama 4.
-static float g4;
-
-/// \brief Gama 5.
-static float g5;
-
-/// \brief Gama 6.
-static float g6;
-
-/// \brief Gama 7.
-static float g7;
-
-/// \brief Gama 8.
-static float g8;
-
-/// \brief Init gamas values.
-void init_gamas_opt()
-{
-    g1 = (GAMA - 1.0) / (2.0 * GAMA);
-    g2 = (GAMA + 1.0) / (2.0 * GAMA);
-    g3 = 2.0 * GAMA / (GAMA - 1.0);
-    g4 = 2.0 / (GAMA - 1.0);
-    g5 = 2.0 / (GAMA + 1.0);
-    g6 = (GAMA - 1.0) / (GAMA + 1.0);
-    g7 = (GAMA - 1.0) / 2.0;
-    g8 = GAMA - 1.0;
-}
 
 /// \brief 
 ///
@@ -97,17 +58,17 @@ static void guessp(float dl, float ul, float pl, float cl,
         if (ppv < pmin)
         {
             // Select Two-Rarefaction Riemann solver.
-            pq = pow(pl / pr, g1);
-            um = (pq * ul / cl + ur / cr + g4 * (pq - 1.0)) / (pq / cl + 1.0 / cr);
-            ptl = 1.0 + g7 * (ul - um) / cl;
-            ptr = 1.0 + g7 * (um - ur) / cr;
-            pm = 0.5 * (pow(pl * ptl, g3) + pow(pr * ptr, g3));
+            pq = pow(pl / pr, G1);
+            um = (pq * ul / cl + ur / cr + G4 * (pq - 1.0)) / (pq / cl + 1.0 / cr);
+            ptl = 1.0 + G7 * (ul - um) / cl;
+            ptr = 1.0 + G7 * (um - ur) / cr;
+            pm = 0.5 * (pow(pl * ptl, G3) + pow(pr * ptr, G3));
         }
         else
         {
             // Select Two-Shock Riemann solver with PVRS as estimate.
-            gel = sqrt((g5 / dl) / (g6 * pl + ppv));
-            ger = sqrt((g5 / dr) / (g6 * pr + ppv));
+            gel = sqrt((G5 / dl) / (G6 * pl + ppv));
+            ger = sqrt((G5 / dr) / (G6 * pr + ppv));
             pm = (gel * pl + ger * pr - (ur - ul)) / (gel + ger);
         }
     }
@@ -129,14 +90,14 @@ static void prefun(float &f, float &fd, float &p,
     {
         // Rarefaction wave.
         pratio = p / pk;
-        f = g4 * ck * (pow(pratio, g1) - 1.0);
-        fd = (1.0 / (dk * ck)) * pow(pratio, -g2);
+        f = G4 * ck * (pow(pratio, G1) - 1.0);
+        fd = (1.0 / (dk * ck)) * pow(pratio, -G2);
     }
     else
     {
         // Shock wave.
-        ak = g5 / dk;
-        bk = g6 * pk;
+        ak = G5 / dk;
+        bk = G6 * pk;
         qrt = sqrt(ak / (bk + p));
         f = (p - pk) * qrt;
         fd = (1.0 - 0.5 * (p - pk) / (bk + p)) * qrt;
@@ -228,7 +189,7 @@ static void sample(float dl, float ul, float pl, float cl,
             }
             else
             {
-                cml = cl * pow(pm / pl, g1);
+                cml = cl * pow(pm / pl, G1);
                 stl = um - cml;
 
                 if (s > stl)
@@ -241,10 +202,10 @@ static void sample(float dl, float ul, float pl, float cl,
                 else
                 {
                     // Sampled point is inside left fan.
-                    u = g5 * (cl + g7 * ul + s);
-                    c = g5 * (cl + g7 * (ul - s));
-                    d = dl * pow(c / cl, g4);
-                    p = pl * pow(c / cl, g3);
+                    u = G5 * (cl + G7 * ul + s);
+                    c = G5 * (cl + G7 * (ul - s));
+                    d = dl * pow(c / cl, G4);
+                    p = pl * pow(c / cl, G3);
                 }
             }
         }
@@ -252,7 +213,7 @@ static void sample(float dl, float ul, float pl, float cl,
         {
             // Left shock.
             pml = pm / pl;
-            sl = ul - cl * sqrt(g2 * pml + g1);
+            sl = ul - cl * sqrt(G2 * pml + G1);
 
             if (s <= sl)
             {
@@ -264,7 +225,7 @@ static void sample(float dl, float ul, float pl, float cl,
             else
             {
                 // Sampled point is star left state.
-                d = dl * (pml + g6) / (pml * g6 + 1.0);
+                d = dl * (pml + G6) / (pml * G6 + 1.0);
                 u = um;
                 p = pm;
             }
@@ -277,7 +238,7 @@ static void sample(float dl, float ul, float pl, float cl,
         {
             // Right shock.
             pmr = pm / pr;
-            sr  = ur + cr * sqrt(g2 * pmr + g1);
+            sr  = ur + cr * sqrt(G2 * pmr + G1);
 
             if (s >= sr)
             {
@@ -289,7 +250,7 @@ static void sample(float dl, float ul, float pl, float cl,
             else
             {
                 // Sampled point is star right state.
-                d = dr * (pmr + g6) / (pmr * g6 + 1.0);
+                d = dr * (pmr + G6) / (pmr * G6 + 1.0);
                 u = um;
                 p = pm;
             }
@@ -307,7 +268,7 @@ static void sample(float dl, float ul, float pl, float cl,
             }
             else
             {
-                cmr = cr * pow(pm / pr, g1);
+                cmr = cr * pow(pm / pr, G1);
                 str = um + cmr;
 
                 if (s <= str)
@@ -320,10 +281,10 @@ static void sample(float dl, float ul, float pl, float cl,
                 else
                 {
                     // Sampled point is inside left fan.
-                    u = g5 * (-cr + g7 * ur + s);
-                    c = g5 * (cr - g7 * (ur - s));
-                    d = dr * pow(c / cr, g4);
-                    p = pr * pow(c / cr, g3);
+                    u = G5 * (-cr + G7 * ur + s);
+                    c = G5 * (cr - G7 * (ur - s));
+                    d = dr * pow(c / cr, G4);
+                    p = pr * pow(c / cr, G3);
                 }
             }
         }
@@ -354,7 +315,7 @@ static void riemann(float dl, float ul, float pl,
     cr = sqrt(GAMA * pr / dr);
 
     // Check for vacuum.
-    if (g4 * (cl + cr) <= (ur - ul))
+    if (G4 * (cl + cr) <= (ur - ul))
     {
 
         cerr << "VACUUM" << endl;
