@@ -138,7 +138,10 @@ void clean()
 ///
 /// \param[in] solver - solver function
 /// \param[in] str - description
-void run(void (*solver)(int,
+///
+/// \return
+/// Execution time.
+double run(void (*solver)(int,
                         float *, float *, float *,
                         float *, float *, float *,
                         float *, float *, float *),
@@ -157,12 +160,39 @@ void run(void (*solver)(int,
     double t_end = omp_get_wtime();
     check();    
     double t_len = t_end - t_start;
-    cout << setw(15) << str << " ~ " << (t_end - t_start) << " seconds" << endl;
+    cout << setw(15) << str << " ~ " << t_len << " seconds" << endl;
+
+    return t_len;
+}
+
+/// \brief Min value in array.
+///
+/// \param d - array
+/// \param c - element count
+///
+/// \return
+/// Min value.
+double array_min(double *d, int c)
+{
+    double m = d[0];
+
+    for (int i = 1; i < c; i++)
+    {
+        if (d[i] < m)
+        {
+            m = d[i];
+        }
+    }
+
+    return m;
 }
 
 /// \brief Test.
 int main()
 {
+    double times[REPEATS];
+    double times_opt[REPEATS];
+
     if (!((sizeof(dls) == sizeof(uls)) && (sizeof(uls) == sizeof(pls))
           && (sizeof(pls) == sizeof(drs)) && (sizeof(drs) == sizeof(urs))
           && (sizeof(urs) == sizeof(prs)) && (sizeof(prs) == sizeof(ds_orig))
@@ -180,17 +210,22 @@ int main()
 
     for (int i = 0; i < REPEATS; i++)
     {
-        run(riemann, "not optimized");
+        times[i] = run(riemann, "not optimized");
     }
 
     cout << "----------" << endl;
 
     for (int i = 0; i < REPEATS; i++)
     {
-        run(riemann_opt, "optimized");
+        times_opt[i] = run(riemann_opt, "optimized");
     }
 
-    cout << "test done" << endl;
+    double min_time = array_min(times, REPEATS);
+    double min_time_opt = array_min(times_opt, REPEATS);
+    double time_reduce = ((min_time - min_time_opt) / min_time) * 100.0;
+    double speedup_x = min_time / min_time_opt;
+    cout << "test done : time_reduce = " << setprecision(2) << time_reduce
+         << "%, speedup_x = " << setprecision(3) << speedup_x << endl;
 
     // Free memory.
     delete ds;
