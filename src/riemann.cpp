@@ -167,12 +167,12 @@ static void starpu(float dl, float ul, float pl, float cl,
 /// TODO:
 static void sample(float dl, float ul, float pl, float cl,
                    float dr, float ur, float pr, float cr,
-                   const float pm, const float um, const float s,
+                   const float pm, const float um,
                    float &d, float &u, float &p)
 {
     float c, cml, cmr, pml, pmr, shl, shr, sl, sr, stl, str;
 
-    if (s <= um)
+    if (0.0 <= um)
     {
         // Sampling point lies to the left of the contact discontinuity.
         if (pm <= pl)
@@ -180,7 +180,7 @@ static void sample(float dl, float ul, float pl, float cl,
             // Left rarefaction.
             shl = ul - cl;
 
-            if (s <= shl)
+            if (0.0 <= shl)
             {
                 // Sampled point is left data state.
                 d = dl;
@@ -192,7 +192,7 @@ static void sample(float dl, float ul, float pl, float cl,
                 cml = cl * pow(pm / pl, G1);
                 stl = um - cml;
 
-                if (s > stl)
+                if (0.0 > stl)
                 {
                     // Sampled point is star left state.
                     d = dl * pow(pm / pl, 1.0 / GAMA);
@@ -202,8 +202,8 @@ static void sample(float dl, float ul, float pl, float cl,
                 else
                 {
                     // Sampled point is inside left fan.
-                    u = G5 * (cl + G7 * ul + s);
-                    c = G5 * (cl + G7 * (ul - s));
+                    u = G5 * (cl + G7 * ul);
+                    c = G5 * (cl + G7 * ul);
                     d = dl * pow(c / cl, G4);
                     p = pl * pow(c / cl, G3);
                 }
@@ -215,7 +215,7 @@ static void sample(float dl, float ul, float pl, float cl,
             pml = pm / pl;
             sl = ul - cl * sqrt(G2 * pml + G1);
 
-            if (s <= sl)
+            if (0.0 <= sl)
             {
                 // Sampled point is left data state.
                 d = dl;
@@ -240,7 +240,7 @@ static void sample(float dl, float ul, float pl, float cl,
             pmr = pm / pr;
             sr  = ur + cr * sqrt(G2 * pmr + G1);
 
-            if (s >= sr)
+            if (0.0 >= sr)
             {
                 // Sampled point is right data state.
                 d = dr;
@@ -259,7 +259,7 @@ static void sample(float dl, float ul, float pl, float cl,
         {
             // Right rarefaction.
             shr = ur + cr;
-            if (s >= shr)
+            if (0.0 >= shr)
             {
                 // Sampled point is right data state.
                 d = dr;
@@ -271,7 +271,7 @@ static void sample(float dl, float ul, float pl, float cl,
                 cmr = cr * pow(pm / pr, G1);
                 str = um + cmr;
 
-                if (s <= str)
+                if (0.0 <= str)
                 {
                     // Sampled point is star right state.
                     d = dr * pow(pm / pr, 1.0 / GAMA);
@@ -281,8 +281,8 @@ static void sample(float dl, float ul, float pl, float cl,
                 else
                 {
                     // Sampled point is inside left fan.
-                    u = G5 * (-cr + G7 * ur + s);
-                    c = G5 * (cr - G7 * (ur - s));
+                    u = G5 * (-cr + G7 * ur);
+                    c = G5 * (cr - G7 * ur);
                     d = dr * pow(c / cr, G4);
                     p = pr * pow(c / cr, G3);
                 }
@@ -324,7 +324,7 @@ static void riemann(float dl, float ul, float pl,
 
     // Exact solution.
     starpu(dl, ul, pl, cl, dr, ur, pr, cr, pm, um);
-    sample(dl, ul, pl, cl, dr, ur, pr, cr, pm, um, 0.0, d, u, p);
+    sample(dl, ul, pl, cl, dr, ur, pr, cr, pm, um, d, u, p);
 }
 
 /// \brief Riemann solver.
