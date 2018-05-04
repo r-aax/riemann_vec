@@ -14,11 +14,21 @@
 #include <omp.h>
 using namespace std;
 
+/// \brief Alignment of 64 bytes.
+#ifdef INTEL
+#define ALIGN_64 __declspec(align(64))
+#else
+#define ALIGN_64
+#endif
+
 /// \brief Repeats count.
 #define REPEATS 5
 
+/// \brief Test cases
+#define TEST_CASES 222640
+
 /// \brief Test data <c>dl</c>.
-float dls[] =
+ALIGN_64 float dls[] =
 {
 
 #include "test_data_dl.inc"
@@ -26,7 +36,7 @@ float dls[] =
 };
 
 /// \brief Test data <c>ul</c>.
-float uls[] =
+ALIGN_64 float uls[] =
 {
 
 #include "test_data_ul.inc"
@@ -34,7 +44,7 @@ float uls[] =
 };
 
 /// \brief Test data <c>pl</c>.
-float pls[] =
+ALIGN_64 float pls[] =
 {
 
 #include "test_data_pl.inc"
@@ -42,7 +52,7 @@ float pls[] =
 };
 
 /// \brief Test data <c>dr</c>.
-float drs[] =
+ALIGN_64 float drs[] =
 {
 
 #include "test_data_dr.inc"
@@ -50,7 +60,7 @@ float drs[] =
 };
 
 /// \brief Test data <c>ur</c>.
-float urs[] =
+ALIGN_64 float urs[] =
 {
 
 #include "test_data_ur.inc"
@@ -58,7 +68,7 @@ float urs[] =
 };
 
 /// \brief Test data <c>pr</c>.
-float prs[] =
+ALIGN_64 float prs[] =
 {
 
 #include "test_data_pr.inc"
@@ -66,7 +76,7 @@ float prs[] =
 };
 
 /// \brief Test data <c>d</c>.
-float ds_orig[] =
+ALIGN_64 float ds_orig[] =
 {
 
 #include "test_data_d.inc"
@@ -74,7 +84,7 @@ float ds_orig[] =
 };
 
 /// \brief Test data <c>u</c>.
-float us_orig[] =
+ALIGN_64 float us_orig[] =
 {
 
 #include "test_data_u.inc"
@@ -82,7 +92,7 @@ float us_orig[] =
 };
 
 /// \brief Test data <c>p</c>.
-float ps_orig[] =
+ALIGN_64 float ps_orig[] =
 {
 
 #include "test_data_p.inc"
@@ -90,13 +100,13 @@ float ps_orig[] =
 };
 
 /// \brief Calculated result <c>d</c>.
-float *ds;
+ALIGN_64 float ds[TEST_CASES];
 
 /// \brief Calculated result <c>u</c>.
-float *us;
+ALIGN_64 float us[TEST_CASES];
 
 /// \brief Calculated result <c>p</c>.
-float *ps;
+ALIGN_64 float ps[TEST_CASES];
 
 /// \brief Test cases count.
 int test_cases = sizeof(dls) / sizeof(dls[0]);
@@ -158,7 +168,7 @@ double run(void (*solver)(int,
         solver(test_cases, dls, uls, pls, drs, urs, prs, ds, us, ps);
     }
     double t_end = omp_get_wtime();
-    check();    
+    check();
     double t_len = t_end - t_start;
     cout << setw(15) << str << " ~ " << t_len << " seconds" << endl;
 
@@ -202,9 +212,37 @@ int main()
         exit(1);
     }
 
-    ds = new float[test_cases];
-    us = new float[test_cases];
-    ps = new float[test_cases];
+    // We use statis allocation and test cases check.
+    if (test_cases != TEST_CASES)
+    {
+        cout << "error : wrong test cases count" << endl;
+        exit(1);
+    }
+    //ds = new float[test_cases];
+    //us = new float[test_cases];
+    //ps = new float[test_cases];
+
+    {
+        // Check alignment.
+        unsigned long dls_a = (unsigned long)&dls[0], uls_a = (unsigned long)&uls[0], pls_a = (unsigned long)&pls[0],
+                      drs_a = (unsigned long)&drs[0], urs_a = (unsigned long)&urs[0], prs_a = (unsigned long)&prs[0],
+                      ds_orig_a = (unsigned long)&ds_orig[0], us_orig_a = (unsigned long)&us_orig[0], ps_orig_a = (unsigned long)&ps_orig[0],
+                      ds_a = (unsigned long)&ds[0], us_a = (unsigned long)&us[0], ps_a = (unsigned long)&ps[0];
+
+        if (((dls_a | uls_a | pls_a
+              | drs_a | urs_a | prs_a
+              | ds_orig_a | us_orig_a | ps_orig_a
+              | ds_a | us_a | ps_a ) & 0x3F) != 0x0)
+        {
+            cout << "wrong arrays alignment : " << hex
+                 << &dls[0] << ", " << &uls[0] << ", " << &pls[0] << ", "
+                 << &drs[0] << ", " << &urs[0] << ", " << &prs[0] << ", "
+                 << &ds_orig[0] << ", " << &us_orig[0] << ", " << &ps_orig[0] << ", "
+                 << &ds[0] << ", " << &us[0] << ", " << &ps[0]
+                 << endl;
+            exit(1);
+        }
+    }
 
     cout << "test begin : " << test_cases << " test cases" << endl;
 
@@ -228,9 +266,9 @@ int main()
          << "%, speedup_x = " << setprecision(3) << speedup_x << endl;
 
     // Free memory.
-    delete ds;
-    delete us;
-    delete ps;
+    //delete ds;
+    //delete us;
+    //delete ps;
 
     return 0;
 }

@@ -2,3 +2,6 @@
 *.gcov
 *.gcda
 *.gcno
+*.s
+*.optrpt
+result.txt
