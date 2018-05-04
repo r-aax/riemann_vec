@@ -1,6 +1,6 @@
 #!/bin/bash
 
-FLAGS="-DINTEL -O3 -xmic-avx512 -qopt-prefetch"
+FLAGS="-DINTEL -O3 -xmic-avx512 -qopt-prefetch -fno-inline"
 INFO_FLAGS="-qopt-report=5"
 EXE="riemann.out"
 

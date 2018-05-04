@@ -15,6 +15,10 @@
 #include "riemann.h"
 using namespace std;
 
+#ifdef INTEL
+
+#include <immintrin.h>
+
 /// \brief 
 ///
 /// Purpose is to provide a guessed value for pressure
@@ -158,8 +162,42 @@ static void starpu(float dl, float ul, float pl, float cl,
 
 /// \brief
 ///
+/// Purpose is to compute the solution for pressure
+/// and velocity in the Star Region.
+///
+/// TODO:
+static void starpu_16(__m512 vdl, __m512 vul, __m512 vpl, __m512 vcl,
+                      __m512 vdr, __m512 vur, __m512 vpr, __m512 vcr,
+                      __m512 *vp, __m512 *vu)
+{
+    float arr_dl[16], arr_ul[16], arr_pl[16], arr_cl[16],
+          arr_dr[16], arr_ur[16], arr_pr[16], arr_cr[16],
+          arr_p[16], arr_u[16];
+
+    _mm512_store_ps(&arr_dl[0], vdl);
+    _mm512_store_ps(&arr_ul[0], vul);
+    _mm512_store_ps(&arr_pl[0], vpl);
+    _mm512_store_ps(&arr_cl[0], vcl);
+    _mm512_store_ps(&arr_dr[0], vdr);
+    _mm512_store_ps(&arr_ur[0], vur);
+    _mm512_store_ps(&arr_pr[0], vpr);
+    _mm512_store_ps(&arr_cr[0], vcr);
+
+    for (int i = 0; i < 16; i++)
+    {
+        starpu(arr_dl[i], arr_ul[i], arr_pl[i], arr_cl[i],
+               arr_dr[i], arr_ur[i], arr_pr[i], arr_cr[i],
+               arr_p[i], arr_u[i]);
+    }
+
+    *vp = _mm512_load_ps(&arr_p[0]);
+    *vu = _mm512_load_ps(&arr_u[0]);
+}
+
+/// \brief
+///
 /// Purpose is to sample the solution throughout the wave
-/// pattern. Pressure pm and velocity um in the
+/// pattern. Pressure pm and velocit
 /// star region are known. Sampling is performed
 /// in terms of the 'speed' s = x/t. Sampled
 /// values are d, u, p.
@@ -291,6 +329,49 @@ static void sample(float dl, float ul, float pl, float cl,
     }
 }
 
+/// \brief
+///
+/// Purpose is to sample the solution throughout the wave
+/// pattern. Pressure pm and velocit
+/// star region are known. Sampling is performed
+/// in terms of the 'speed' s = x/t. Sampled
+/// values are d, u, p.
+///
+/// TODO:
+static void sample_16(__m512 vdl, __m512 vul, __m512 vpl, __m512 vcl,
+                      __m512 vdr, __m512 vur, __m512 vpr, __m512 vcr,
+                      __m512 vpm, __m512 vum,
+                      __m512 *vd, __m512 *vu, __m512 *vp)
+{
+    float arr_dl[16], arr_ul[16], arr_pl[16], arr_cl[16],
+          arr_dr[16], arr_ur[16], arr_pr[16], arr_cr[16],
+          arr_pm[16], arr_um[16],
+          arr_d[16], arr_u[16], arr_p[16];
+
+    _mm512_store_ps(&arr_dl[0], vdl);
+    _mm512_store_ps(&arr_ul[0], vul);
+    _mm512_store_ps(&arr_pl[0], vpl);
+    _mm512_store_ps(&arr_cl[0], vcl);
+    _mm512_store_ps(&arr_dr[0], vdr);
+    _mm512_store_ps(&arr_ur[0], vur);
+    _mm512_store_ps(&arr_pr[0], vpr);
+    _mm512_store_ps(&arr_cr[0], vcr);
+    _mm512_store_ps(&arr_pm[0], vpm);
+    _mm512_store_ps(&arr_um[0], vum);
+
+    for (int i = 0; i < 16; i++)
+    {
+        sample(arr_dl[i], arr_ul[i], arr_pl[i], arr_cl[i],
+               arr_dr[i], arr_ur[i], arr_pr[i], arr_cr[i],
+               arr_pm[i], arr_um[i],
+               arr_d[i], arr_u[i], arr_p[i]);
+    }
+
+    *vd = _mm512_load_ps(&arr_d[0]);
+    *vu = _mm512_load_ps(&arr_u[0]);
+    *vp = _mm512_load_ps(&arr_p[0]);
+}
+
 /// \brief Riemann solver.
 ///
 /// \param[in] dl - left side density
@@ -317,10 +398,9 @@ static void riemann(float dl, float ul, float pl,
     // Check for vacuum.
     if (G4 * (cl + cr) <= (ur - ul))
     {
-
         cerr << "VACUUM" << endl;
         exit(1);
-    }    
+    }
 
     // Exact solution.
     starpu(dl, ul, pl, cl, dr, ur, pr, cr, pm, um);
@@ -342,16 +422,48 @@ static void riemann_16(float *dl, float *ul, float *pl,
                        float *dr, float *ur, float *pr,
                        float *d, float *u, float *p)
 {
-    float d_, u_, p_;
+    __assume_aligned(dl, 64);
+    __assume_aligned(ul, 64);
+    __assume_aligned(pl, 64);
+    __assume_aligned(dr, 64);
+    __assume_aligned(ur, 64);
+    __assume_aligned(pr, 64);
+    __assume_aligned(d, 64);
+    __assume_aligned(u, 64);
+    __assume_aligned(p, 64);
 
-    for (int i = 0; i < 16; i++)
+    // Basic data.
+    __m512 vdl = _mm512_load_ps(dl);
+    __m512 vul = _mm512_load_ps(ul);
+    __m512 vpl = _mm512_load_ps(pl);
+    __m512 vdr = _mm512_load_ps(dr);
+    __m512 vur = _mm512_load_ps(ur);
+    __m512 vpr = _mm512_load_ps(pr);
+
+    // Sound speed and check for vacuum.
+    __m512 vgama = _mm512_set1_ps(GAMA);
+    __m512 vg4 = _mm512_set1_ps(G4);
+    __m512 vcl = _mm512_sqrt_ps(_mm512_div_ps(_mm512_mul_ps(vgama, vpl), vdl));
+    __m512 vcr = _mm512_sqrt_ps(_mm512_div_ps(_mm512_mul_ps(vgama, vpr), vdr));
+    __mmask16 vacuum_mask = _mm512_cmp_ps_mask(_mm512_mul_ps(vg4, _mm512_add_ps(vcl, vcr)),
+                                               _mm512_sub_ps(vur, vul),
+                                               _MM_CMPINT_LE);
+
+    if (vacuum_mask != 0x0)
     {
-        riemann(dl[i], ul[i], pl[i], dr[i], ur[i], pr[i], d_, u_, p_);
-        d[i] = d_;
-        u[i] = u_;
-        p[i] = p_;
+        cerr << "VACUUM" << endl;
+        exit(1);
     }
+
+    __m512 vpm, vum, vd, vu, vp;
+    starpu_16(vdl, vul, vpl, vcl, vdr, vur, vpr, vcr, &vpm, &vum);
+    sample_16(vdl, vul, vpl, vcl, vdr, vur, vpr, vcr, vpm, vum, &vd, &vu, &vp);
+    _mm512_store_ps(d, vd);
+    _mm512_store_ps(u, vu);
+    _mm512_store_ps(p, vp);
 }
+
+#endif
 
 /// \brief Riemann solver.
 ///
@@ -370,6 +482,13 @@ void riemann_opt(int c,
                  float *dr, float *ur, float *pr,
                  float *d, float *u, float *p)
 {
+
+#ifndef INTEL
+
+    riemann(c, dl, ul, pl, dr, ur, pr, d, u, p);
+
+#else
+
     float d_, u_, p_;
 
     int c_tail = c & 0xF;
@@ -389,4 +508,7 @@ void riemann_opt(int c,
         u[i] = u_;
         p[i] = p_;
     }
+
+#endif
+
 }
