@@ -25,7 +25,7 @@ using namespace std;
 #define REPEATS 5
 
 /// \brief Test cases
-#define TEST_CASES 222640
+#define TEST_CASES 419996
 
 /// \brief Test data <c>dl</c>.
 ALIGN_64 float dls[] =
@@ -215,7 +215,7 @@ int main()
     // We use statis allocation and test cases check.
     if (test_cases != TEST_CASES)
     {
-        cout << "error : wrong test cases count" << endl;
+        cout << "error : wrong test cases count (" << test_cases << " != " << TEST_CASES << ")" << endl;
         exit(1);
     }
     //ds = new float[test_cases];

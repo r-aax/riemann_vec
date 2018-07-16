@@ -2,10 +2,7 @@
 *.gcov
 *.gcda
 *.gcno
-<<<<<<< HEAD
 *.txt
-=======
 *.s
 *.optrpt
 result.txt
->>>>>>> 72926230394a3785b05cdd0ec2ae811389714300
