@@ -142,10 +142,10 @@ void clean()
 /// \return
 /// Execution time.
 double run(void (*solver)(int,
-                        float *, float *, float *,
-                        float *, float *, float *,
-                        float *, float *, float *),
-         string str)
+                          float *, float *, float *,
+                          float *, float *, float *,
+                          float *, float *, float *),
+           string str)
 {
 
 /// \brief Inner repeats count.
