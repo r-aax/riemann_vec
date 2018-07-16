@@ -317,10 +317,9 @@ static void riemann(float dl, float ul, float pl,
     // Check for vacuum.
     if (G4 * (cl + cr) <= (ur - ul))
     {
-
         cerr << "VACUUM" << endl;
         exit(1);
-    }    
+    }
 
     // Exact solution.
     starpu(dl, ul, pl, cl, dr, ur, pr, cr, pm, um);
