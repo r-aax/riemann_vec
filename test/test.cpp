@@ -24,14 +24,33 @@ using namespace std;
 /// \brief Repeats count.
 #define REPEATS 5
 
-/// \brief Test cases
-#define TEST_CASES 419996
+/// brief Test mode.
+///
+/// 0 - small test mode
+/// 1 - big test mode
+#define TEST_MODE 0
+
+/// \brief Test cases in big mode.
+#define TEST_CASES_BIG 419996
+
+/// \brief Test cases in small mode.
+#define TEST_CASES_SMALL 32
+
+#if TEST_MODE == 0
+#define TEST_CASES TEST_CASES_SMALL
+#else
+#define TEST_CASES TEST_CASES_BIG
+#endif
 
 /// \brief Test data <c>dl</c>.
 ALIGN_64 float dls[] =
 {
 
-#include "test_data_dl.inc"
+#if TEST_MODE == 0
+#include "small/test_data_dl.inc"
+#else
+#include "big/test_data_dl.inc"
+#endif
 
 };
 
@@ -39,7 +58,11 @@ ALIGN_64 float dls[] =
 ALIGN_64 float uls[] =
 {
 
-#include "test_data_ul.inc"
+#if TEST_MODE == 0
+#include "small/test_data_ul.inc"
+#else
+#include "big/test_data_ul.inc"
+#endif
 
 };
 
@@ -47,7 +70,11 @@ ALIGN_64 float uls[] =
 ALIGN_64 float pls[] =
 {
 
-#include "test_data_pl.inc"
+#if TEST_MODE == 0
+#include "small/test_data_pl.inc"
+#else
+#include "big/test_data_pl.inc"
+#endif
 
 };
 
@@ -55,7 +82,11 @@ ALIGN_64 float pls[] =
 ALIGN_64 float drs[] =
 {
 
-#include "test_data_dr.inc"
+#if TEST_MODE == 0
+#include "small/test_data_dr.inc"
+#else
+#include "big/test_data_dr.inc"
+#endif
 
 };
 
@@ -63,7 +94,11 @@ ALIGN_64 float drs[] =
 ALIGN_64 float urs[] =
 {
 
-#include "test_data_ur.inc"
+#if TEST_MODE == 0
+#include "small/test_data_ur.inc"
+#else
+#include "big/test_data_ur.inc"
+#endif
 
 };
 
@@ -71,7 +106,11 @@ ALIGN_64 float urs[] =
 ALIGN_64 float prs[] =
 {
 
-#include "test_data_pr.inc"
+#if TEST_MODE == 0
+#include "small/test_data_pr.inc"
+#else
+#include "big/test_data_pr.inc"
+#endif
 
 };
 
@@ -79,7 +118,11 @@ ALIGN_64 float prs[] =
 ALIGN_64 float ds_orig[] =
 {
 
-#include "test_data_d.inc"
+#if TEST_MODE == 0
+#include "small/test_data_d.inc"
+#else
+#include "big/test_data_d.inc"
+#endif
 
 };
 
@@ -87,7 +130,11 @@ ALIGN_64 float ds_orig[] =
 ALIGN_64 float us_orig[] =
 {
 
-#include "test_data_u.inc"
+#if TEST_MODE == 0
+#include "small/test_data_u.inc"
+#else
+#include "big/test_data_u.inc"
+#endif
 
 };
 
@@ -95,7 +142,11 @@ ALIGN_64 float us_orig[] =
 ALIGN_64 float ps_orig[] =
 {
 
-#include "test_data_p.inc"
+#if TEST_MODE == 0
+#include "small/test_data_p.inc"
+#else
+#include "big/test_data_p.inc"
+#endif
 
 };
 
@@ -213,7 +264,7 @@ int main()
     }
 
     // We use statis allocation and test cases check.
-    if (test_cases != TEST_CASES)
+    if ((test_cases != TEST_CASES_BIG) && (test_cases != TEST_CASES_SMALL))
     {
         cout << "error : wrong test cases count (" << test_cases << " != " << TEST_CASES << ")" << endl;
         exit(1);
