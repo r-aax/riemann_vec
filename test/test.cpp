@@ -269,9 +269,8 @@ int main()
         cout << "error : wrong test cases count (" << test_cases << " != " << TEST_CASES << ")" << endl;
         exit(1);
     }
-    //ds = new float[test_cases];
-    //us = new float[test_cases];
-    //ps = new float[test_cases];
+
+#ifdef INTEL
 
     {
         // Check alignment.
@@ -294,6 +293,8 @@ int main()
             exit(1);
         }
     }
+
+#endif
 
     cout << "test begin : " << test_cases << " test cases" << endl;
 
