@@ -24,14 +24,21 @@ using namespace std;
 /// \brief Repeats count.
 #define REPEATS 5
 
-/// \brief Test cases
+/// \brief Big test.
+#define BIG_TEST 0
+
+/// \brief Test cases.
 #define TEST_CASES 419996
 
 /// \brief Test data <c>dl</c>.
 ALIGN_64 float dls[] =
 {
 
-#include "test_data_dl.inc"
+#if BIG_TEST == 1
+#include "big/dl.txt"
+#else
+#include "small/dl.txt"
+#endif
 
 };
 
@@ -39,7 +46,11 @@ ALIGN_64 float dls[] =
 ALIGN_64 float uls[] =
 {
 
-#include "test_data_ul.inc"
+#if BIG_TEST == 1
+#include "big/ul.txt"
+#else
+#include "small/ul.txt"
+#endif
 
 };
 
@@ -47,7 +58,11 @@ ALIGN_64 float uls[] =
 ALIGN_64 float pls[] =
 {
 
-#include "test_data_pl.inc"
+#if BIG_TEST == 1
+#include "big/pl.txt"
+#else
+#include "small/pl.txt"
+#endif
 
 };
 
@@ -55,7 +70,11 @@ ALIGN_64 float pls[] =
 ALIGN_64 float drs[] =
 {
 
-#include "test_data_dr.inc"
+#if BIG_TEST == 1
+#include "big/dr.txt"
+#else
+#include "small/dr.txt"
+#endif
 
 };
 
@@ -63,7 +82,11 @@ ALIGN_64 float drs[] =
 ALIGN_64 float urs[] =
 {
 
-#include "test_data_ur.inc"
+#if BIG_TEST == 1
+#include "big/ur.txt"
+#else
+#include "small/ur.txt"
+#endif
 
 };
 
@@ -71,7 +94,11 @@ ALIGN_64 float urs[] =
 ALIGN_64 float prs[] =
 {
 
-#include "test_data_pr.inc"
+#if BIG_TEST == 1
+#include "big/pr.txt"
+#else
+#include "small/pr.txt"
+#endif
 
 };
 
@@ -79,7 +106,11 @@ ALIGN_64 float prs[] =
 ALIGN_64 float ds_orig[] =
 {
 
-#include "test_data_d.inc"
+#if BIG_TEST == 1
+#include "big/d_orig.txt"
+#else
+#include "small/d_orig.txt"
+#endif
 
 };
 
@@ -87,7 +118,11 @@ ALIGN_64 float ds_orig[] =
 ALIGN_64 float us_orig[] =
 {
 
-#include "test_data_u.inc"
+#if BIG_TEST == 1
+#include "big/u_orig.txt"
+#else
+#include "small/u_orig.txt"
+#endif
 
 };
 
@@ -95,7 +130,11 @@ ALIGN_64 float us_orig[] =
 ALIGN_64 float ps_orig[] =
 {
 
-#include "test_data_p.inc"
+#if BIG_TEST == 1
+#include "big/p_orig.txt"
+#else
+#include "small/p_orig.txt"
+#endif
 
 };
 
@@ -209,19 +248,20 @@ int main()
           && (sizeof(ds_orig) == sizeof(us_orig)) && (sizeof(us_orig) == sizeof(ps_orig))))
     {
         cout << "error : test data corrupted" << endl;
+        cout << sizeof(dls) << ", " << sizeof(uls) << ", " << sizeof(pls) << endl;
+        cout << sizeof(drs) << ", " << sizeof(urs) << ", " << sizeof(prs) << endl;
+        cout << sizeof(ds_orig) << ", " << sizeof(us_orig) << ", " << sizeof(ps_orig) << endl;
         exit(1);
     }
 
-    // We use statis allocation and test cases check.
-    if (test_cases != TEST_CASES)
+    // We use static allocation and test cases check.
+    if (test_cases > TEST_CASES)
     {
-        cout << "error : wrong test cases count (" << test_cases << " != " << TEST_CASES << ")" << endl;
+        cout << "error : wrong test cases count (" << test_cases << " > " << TEST_CASES << ")" << endl;
         exit(1);
     }
-    //ds = new float[test_cases];
-    //us = new float[test_cases];
-    //ps = new float[test_cases];
 
+#ifdef INTEL
     {
         // Check alignment.
         unsigned long dls_a = (unsigned long)&dls[0], uls_a = (unsigned long)&uls[0], pls_a = (unsigned long)&pls[0],
@@ -243,6 +283,7 @@ int main()
             exit(1);
         }
     }
+#endif
 
     cout << "test begin : " << test_cases << " test cases" << endl;
 
@@ -264,11 +305,6 @@ int main()
     double speedup_x = min_time / min_time_opt;
     cout << "test done : time_reduce = " << setprecision(2) << time_reduce
          << "%, speedup_x = " << setprecision(3) << speedup_x << endl;
-
-    // Free memory.
-    //delete ds;
-    //delete us;
-    //delete ps;
 
     return 0;
 }
