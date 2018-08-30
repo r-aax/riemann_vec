@@ -24,20 +24,32 @@ using namespace std;
 /// \brief Repeats count.
 #define REPEATS 5
 
-/// \brief Big test.
-#define BIG_TEST 0
+/// brief Test mode.
+///
+/// 0 - small test mode
+/// 1 - big test mode
+#define TEST_MODE 1
 
-/// \brief Test cases.
-#define TEST_CASES 419996
+/// \brief Test cases in big mode.
+#define TEST_CASES_BIG 419996
+
+/// \brief Test cases in small mode.
+#define TEST_CASES_SMALL 32
+
+#if TEST_MODE == 0
+#define TEST_CASES TEST_CASES_SMALL
+#else
+#define TEST_CASES TEST_CASES_BIG
+#endif
 
 /// \brief Test data <c>dl</c>.
 ALIGN_64 float dls[] =
 {
 
-#if BIG_TEST == 1
-#include "big/dl.txt"
+#if TEST_MODE == 0
+#include "small/test_data_dl.inc"
 #else
-#include "small/dl.txt"
+#include "big/test_data_dl.inc"
 #endif
 
 };
@@ -46,10 +58,10 @@ ALIGN_64 float dls[] =
 ALIGN_64 float uls[] =
 {
 
-#if BIG_TEST == 1
-#include "big/ul.txt"
+#if TEST_MODE == 0
+#include "small/test_data_ul.inc"
 #else
-#include "small/ul.txt"
+#include "big/test_data_ul.inc"
 #endif
 
 };
@@ -58,10 +70,10 @@ ALIGN_64 float uls[] =
 ALIGN_64 float pls[] =
 {
 
-#if BIG_TEST == 1
-#include "big/pl.txt"
+#if TEST_MODE == 0
+#include "small/test_data_pl.inc"
 #else
-#include "small/pl.txt"
+#include "big/test_data_pl.inc"
 #endif
 
 };
@@ -70,10 +82,10 @@ ALIGN_64 float pls[] =
 ALIGN_64 float drs[] =
 {
 
-#if BIG_TEST == 1
-#include "big/dr.txt"
+#if TEST_MODE == 0
+#include "small/test_data_dr.inc"
 #else
-#include "small/dr.txt"
+#include "big/test_data_dr.inc"
 #endif
 
 };
@@ -82,10 +94,10 @@ ALIGN_64 float drs[] =
 ALIGN_64 float urs[] =
 {
 
-#if BIG_TEST == 1
-#include "big/ur.txt"
+#if TEST_MODE == 0
+#include "small/test_data_ur.inc"
 #else
-#include "small/ur.txt"
+#include "big/test_data_ur.inc"
 #endif
 
 };
@@ -94,10 +106,10 @@ ALIGN_64 float urs[] =
 ALIGN_64 float prs[] =
 {
 
-#if BIG_TEST == 1
-#include "big/pr.txt"
+#if TEST_MODE == 0
+#include "small/test_data_pr.inc"
 #else
-#include "small/pr.txt"
+#include "big/test_data_pr.inc"
 #endif
 
 };
@@ -106,10 +118,10 @@ ALIGN_64 float prs[] =
 ALIGN_64 float ds_orig[] =
 {
 
-#if BIG_TEST == 1
-#include "big/d_orig.txt"
+#if TEST_MODE == 0
+#include "small/test_data_d.inc"
 #else
-#include "small/d_orig.txt"
+#include "big/test_data_d.inc"
 #endif
 
 };
@@ -118,10 +130,10 @@ ALIGN_64 float ds_orig[] =
 ALIGN_64 float us_orig[] =
 {
 
-#if BIG_TEST == 1
-#include "big/u_orig.txt"
+#if TEST_MODE == 0
+#include "small/test_data_u.inc"
 #else
-#include "small/u_orig.txt"
+#include "big/test_data_u.inc"
 #endif
 
 };
@@ -130,10 +142,10 @@ ALIGN_64 float us_orig[] =
 ALIGN_64 float ps_orig[] =
 {
 
-#if BIG_TEST == 1
-#include "big/p_orig.txt"
+#if TEST_MODE == 0
+#include "small/test_data_p.inc"
 #else
-#include "small/p_orig.txt"
+#include "big/test_data_p.inc"
 #endif
 
 };
@@ -254,8 +266,8 @@ int main()
         exit(1);
     }
 
-    // We use static allocation and test cases check.
-    if (test_cases > TEST_CASES)
+    // We use statis allocation and test cases check.
+    if ((test_cases != TEST_CASES_BIG) && (test_cases != TEST_CASES_SMALL))
     {
         cout << "error : wrong test cases count (" << test_cases << " > " << TEST_CASES << ")" << endl;
         exit(1);

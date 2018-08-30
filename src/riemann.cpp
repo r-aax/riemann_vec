@@ -170,7 +170,7 @@ static void sample(float dl, float ul, float pl, float cl,
                    const float pm, const float um,
                    float &d, float &u, float &p)
 {
-    float c, cml, cmr, pml, pmr, shl, shr, sl, sr, stl, str;
+    float c, cml, cmr, pml, pmr, shl, shr, sl, sr, stl, str;    
 
     if (0.0 <= um)
     {
