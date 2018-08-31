@@ -19,6 +19,60 @@ using namespace std;
 
 #include <immintrin.h>
 
+/// \brief Short name for LD intrinsic.
+#define LD(ADDR) _mm512_load_ps(ADDR)
+
+/// \brief Short name for ST intrinsic.
+#define ST(ADDR, VAL) _mm512_store_ps(ADDR, VAL)
+
+/// \brief Short name for ADD intrinsic.
+#define ADD(va, vb) _mm512_add_ps(va, vb)
+
+/// \brief Short name for MUL intrinsic.
+#define MUL(va, vb) _mm512_mul_ps(va, vb)
+
+/// \brief Short name for SUB intrinsic.
+#define SUB(va, vb) _mm512_sub_ps(va, vb)
+
+/// \brief Short name for DIV intrinsic.
+#define DIV(va, vb) _mm512_div_ps(va, vb)
+
+/// \brief Short name for POW intrinsic.
+#define POW(va, vb) _mm512_pow_ps(va, vb)
+
+/// \brief Short name for SQRT intrinsic.
+#define SQRT(va) _mm512_sqrt_ps(va)
+
+/// \brief Zero.
+__m512 z = _mm512_setzero_ps();
+
+/// \brief 1.
+__m512 v1 = _mm512_set1_ps(1.0);
+
+/// \brief G1.
+__m512 g1 = _mm512_set1_ps(G1);
+
+/// \brief G2.
+__m512 g2 = _mm512_set1_ps(G2);
+
+/// \brief G3.
+__m512 g3 = _mm512_set1_ps(G3);
+
+/// \brief G4.
+__m512 g4 = _mm512_set1_ps(G4);
+
+/// \brief G5.
+__m512 g5 = _mm512_set1_ps(G5);
+
+/// \brief G6.
+__m512 g6 = _mm512_set1_ps(G6);
+
+/// \brief G7.
+__m512 g7 = _mm512_set1_ps(G7);
+
+/// \brief 1/GAMA.
+__m512 igama = _mm512_set1_ps(1.0 / GAMA);
+
 /// \brief 
 ///
 /// Purpose is to provide a guessed value for pressure
@@ -338,11 +392,63 @@ static void sample(float dl, float ul, float pl, float cl,
 /// values are d, u, p.
 ///
 /// TODO:
-static void sample_16(__m512 vdl, __m512 vul, __m512 vpl, __m512 vcl,
-                      __m512 vdr, __m512 vur, __m512 vpr, __m512 vcr,
-                      __m512 vpm, __m512 vum,
-                      __m512 *vd, __m512 *vu, __m512 *vp)
+static void sample_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
+                      __m512 dr, __m512 ur, __m512 pr, __m512 cr,
+                      __m512 pm, __m512 um,
+                      __m512 *od, __m512 *ou, __m512 *op)
 {
+
+#if 1
+
+    __m512 d, u, p, c, ums, pms, sh, st, s, uc;
+    __mmask16 cond_um, cond_pm, cond_sh, cond_st, cond_s, cond_sh_st;
+
+    // d/u/p/c/ums
+    cond_um = _mm512_cmp_ps_mask(um, z, _MM_CMPINT_LT);
+    d = _mm512_mask_blend_ps(cond_um, dl, dr);
+    u = _mm512_mask_blend_ps(cond_um, ul, ur);
+    p = _mm512_mask_blend_ps(cond_um, pl, pr);
+    c = _mm512_mask_blend_ps(cond_um, cl, cr);
+    ums = um;
+    u = _mm512_mask_sub_ps(u, cond_um, z, u);
+    ums = _mm512_mask_sub_ps(ums, cond_um, z, ums);
+
+    // Calculate main values.
+    pms = DIV(pm, p);
+    sh = SUB(u, c);
+    st = _mm512_fnmadd_ps(POW(pms, g1), c, ums);
+    s = _mm512_fnmadd_ps(c, SQRT(_mm512_fmadd_ps(g2, pms, g1)), u);
+
+    // Conditions.
+    cond_pm = _mm512_cmp_ps_mask(pm, p, _MM_CMPINT_LE);
+    cond_sh = _mm512_mask_cmp_ps_mask(cond_pm, sh, z, _MM_CMPINT_LT);
+    cond_st = _mm512_mask_cmp_ps_mask(cond_sh, st, z, _MM_CMPINT_LT);
+    cond_s = _mm512_mask_cmp_ps_mask(~cond_pm, s, z, _MM_CMPINT_LT);
+    
+    // Store.
+    d = _mm512_mask_mov_ps(d, cond_st, MUL(d, POW(pms, igama)));
+    d = _mm512_mask_mov_ps(d, cond_s, MUL(d, DIV(ADD(pms, g6), _mm512_fmadd_ps(pms, g6, v1))));
+    u = _mm512_mask_mov_ps(u, cond_st | cond_s, ums);
+    p = _mm512_mask_mov_ps(p, cond_st | cond_s, pm);
+
+    // Low prob - ignnore it.
+    cond_sh_st = cond_sh & ~cond_st;
+    if (cond_sh_st)
+    {
+        u = _mm512_mask_mov_ps(u, cond_sh_st, MUL(g5, _mm512_fmadd_ps(g7, u, c)));
+        uc = DIV(u, c);
+        d = _mm512_mask_mov_ps(d, cond_sh_st, MUL(d, POW(uc, g4)));
+        p = _mm512_mask_mov_ps(p, cond_sh_st, MUL(p, POW(uc, g3)));
+    }
+
+    // Final store.
+    u = _mm512_mask_sub_ps(u, cond_um, z, u);
+    *od = d;
+    *ou = u;
+    *op = p;
+
+#else
+
     float arr_dl[16], arr_ul[16], arr_pl[16], arr_cl[16],
           arr_dr[16], arr_ur[16], arr_pr[16], arr_cr[16],
           arr_pm[16], arr_um[16],
@@ -370,6 +476,9 @@ static void sample_16(__m512 vdl, __m512 vul, __m512 vpl, __m512 vcl,
     *vd = _mm512_load_ps(&arr_d[0]);
     *vu = _mm512_load_ps(&arr_u[0]);
     *vp = _mm512_load_ps(&arr_p[0]);
+
+#endif
+
 }
 
 /// \brief Riemann solver.
