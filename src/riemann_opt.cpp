@@ -19,59 +19,68 @@ using namespace std;
 
 #include <immintrin.h>
 
-/// \brief Short name for LD intrinsic.
+/// \brief Short name for load intrinsic.
 #define LD(ADDR) _mm512_load_ps(ADDR)
 
-/// \brief Short name for ST intrinsic.
+/// \brief Short name for store intrinsic.
 #define ST(ADDR, VAL) _mm512_store_ps(ADDR, VAL)
 
-/// \brief Short name for ADD intrinsic.
+/// \brief Short name for add intrinsic.
 #define ADD(va, vb) _mm512_add_ps(va, vb)
 
-/// \brief Short name for MUL intrinsic.
+/// \brief Short name for mul intrinsic.
 #define MUL(va, vb) _mm512_mul_ps(va, vb)
 
-/// \brief Short name for SUB intrinsic.
+/// \brief Short name for sub intrinsic.
 #define SUB(va, vb) _mm512_sub_ps(va, vb)
 
-/// \brief Short name for DIV intrinsic.
+/// \brief Short name for div intrinsic.
 #define DIV(va, vb) _mm512_div_ps(va, vb)
 
-/// \brief Short name for POW intrinsic.
+/// \brief Short name for pow intrinsic.
 #define POW(va, vb) _mm512_pow_ps(va, vb)
 
-/// \brief Short name for SQRT intrinsic.
+/// \brief Short name for sqrt intrinsic.
 #define SQRT(va) _mm512_sqrt_ps(va)
 
+/// \brief Short name for setzero intrinsic.
+#define SETZERO() _mm512_setzero_ps()
+
+/// \brief Short name for set1 intrinsic.
+#define SET1(v) _mm512_set1_ps(v)
+
 /// \brief Zero.
-__m512 z = _mm512_setzero_ps();
+__m512 z = SETZERO();
 
 /// \brief 1.
-__m512 v1 = _mm512_set1_ps(1.0);
+__m512 v1 = SET1(1.0);
 
-/// \brief G1.
-__m512 g1 = _mm512_set1_ps(G1);
-
-/// \brief G2.
-__m512 g2 = _mm512_set1_ps(G2);
-
-/// \brief G3.
-__m512 g3 = _mm512_set1_ps(G3);
-
-/// \brief G4.
-__m512 g4 = _mm512_set1_ps(G4);
-
-/// \brief G5.
-__m512 g5 = _mm512_set1_ps(G5);
-
-/// \brief G6.
-__m512 g6 = _mm512_set1_ps(G6);
-
-/// \brief G7.
-__m512 g7 = _mm512_set1_ps(G7);
+/// \brief GAMA.
+__m512 gama = SET1(GAMA);
 
 /// \brief 1/GAMA.
-__m512 igama = _mm512_set1_ps(1.0 / GAMA);
+__m512 igama = SET1(1.0 / GAMA);
+
+/// \brief G1.
+__m512 g1 = SET1(G1);
+
+/// \brief G2.
+__m512 g2 = SET1(G2);
+
+/// \brief G3.
+__m512 g3 = SET1(G3);
+
+/// \brief G4.
+__m512 g4 = SET1(G4);
+
+/// \brief G5.
+__m512 g5 = SET1(G5);
+
+/// \brief G6.
+__m512 g6 = SET1(G6);
+
+/// \brief G7.
+__m512 g7 = SET1(G7);
 
 /// \brief 
 ///
@@ -165,67 +174,6 @@ static void prefun(float &f, float &fd, float &p,
 /// Purpose is to compute the solution for pressure
 /// and velocity in the Star Region.
 ///
-/// \param[in] dl - left side density
-/// \param[in] ul - left side velocity
-/// \param[in] pl - left side pressure
-/// \param[in] cl - left side sound velocity
-/// \param[in] dr - right side density
-/// \param[in] ur - right side velocity
-/// \param[in] pr - right side pressure
-/// \param[in] cr - right side sound velocity
-/// \param[in] p - pressure in star region
-/// \param[out] u - velocity in star region
-static void starpu(float dl, float ul, float pl, float cl,
-                   float dr, float ur, float pr, float cr,
-                   float &p, float &u)
-{
-    const int nriter = 20;
-    const float tolpre = 1.0e-6;
-    float change, fl, fld, fr, frd, pold, pstart, udiff;
-
-    // Guessed value pstart is computed.
-    guessp(dl, ul, pl, cl, dr, ur, pr, cr, pstart);
-    pold = pstart;
-    udiff = ur - ul;
-
-    int i = 1;
-
-    for ( ; i <= nriter; i++)
-    {
-        prefun(fl, fld, pold, dl, pl, cl);
-        prefun(fr, frd, pold, dr, pr, cr);
-        p = pold - (fl + fr + udiff) / (fld + frd);
-        change = 2.0 * abs((p - pold) / (p + pold));
-
-        if (change <= tolpre)
-        {
-            break;
-        }
-
-        if (p < 0.0)
-        {
-            p = tolpre;
-        }
-
-        pold = p;
-    }
-
-    if (i > nriter)
-    {
-        cout << "divergence in Newton-Raphson iteration" << endl;
-
-        exit(1);
-    }
-
-    // compute velocity in star region
-    u = 0.5*(ul + ur + fr - fl);
-}
-
-/// \brief
-///
-/// Purpose is to compute the solution for pressure
-/// and velocity in the Star Region.
-///
 /// \param[in] vdl - left side density
 /// \param[in] vul - left side velocity
 /// \param[in] vpl - left side pressure
@@ -244,14 +192,14 @@ static void starpu_16(__m512 vdl, __m512 vul, __m512 vpl, __m512 vcl,
           arr_dr[16], arr_ur[16], arr_pr[16], arr_cr[16],
           arr_p[16], arr_u[16];
 
-    _mm512_store_ps(&arr_dl[0], vdl);
-    _mm512_store_ps(&arr_ul[0], vul);
-    _mm512_store_ps(&arr_pl[0], vpl);
-    _mm512_store_ps(&arr_cl[0], vcl);
-    _mm512_store_ps(&arr_dr[0], vdr);
-    _mm512_store_ps(&arr_ur[0], vur);
-    _mm512_store_ps(&arr_pr[0], vpr);
-    _mm512_store_ps(&arr_cr[0], vcr);
+    ST(&arr_dl[0], vdl);
+    ST(&arr_ul[0], vul);
+    ST(&arr_pl[0], vpl);
+    ST(&arr_cl[0], vcl);
+    ST(&arr_dr[0], vdr);
+    ST(&arr_ur[0], vur);
+    ST(&arr_pr[0], vpr);
+    ST(&arr_cr[0], vcr);
 
     for (int i = 0; i < 16; i++)
     {
@@ -264,9 +212,9 @@ static void starpu_16(__m512 vdl, __m512 vul, __m512 vpl, __m512 vcl,
         pold = pstart;
         udiff = arr_ur[i] - arr_ul[i];
 
-        int i = 1;
+        int ii = 1;
 
-        for ( ; i <= nriter; i++)
+        for ( ; ii <= nriter; ii++)
         {
             prefun(fl, fld, pold, arr_dl[i], arr_pl[i], arr_cl[i]);
             prefun(fr, frd, pold, arr_dr[i], arr_pr[i], arr_cr[i]);
@@ -286,7 +234,7 @@ static void starpu_16(__m512 vdl, __m512 vul, __m512 vpl, __m512 vcl,
             pold = arr_p[i];
         }
 
-        if (i > nriter)
+        if (ii > nriter)
         {
             cout << "divergence in Newton-Raphson iteration" << endl;
 
@@ -297,8 +245,8 @@ static void starpu_16(__m512 vdl, __m512 vul, __m512 vpl, __m512 vcl,
         arr_u[i] = 0.5*(arr_ul[i] + arr_ur[i] + fr - fl);
     }
 
-    *vp = _mm512_load_ps(&arr_p[0]);
-    *vu = _mm512_load_ps(&arr_u[0]);
+    *vp = LD(&arr_p[0]);
+    *vu = LD(&arr_u[0]);
 }
 
 /// \brief
@@ -399,34 +347,33 @@ static void riemann_16(float *dl, float *ul, float *pl,
     __assume_aligned(p, 64);
 
     // Basic data.
-    __m512 vdl = _mm512_load_ps(dl);
-    __m512 vul = _mm512_load_ps(ul);
-    __m512 vpl = _mm512_load_ps(pl);
-    __m512 vdr = _mm512_load_ps(dr);
-    __m512 vur = _mm512_load_ps(ur);
-    __m512 vpr = _mm512_load_ps(pr);
+    __m512 vdl = LD(dl);
+    __m512 vul = LD(ul);
+    __m512 vpl = LD(pl);
+    __m512 vdr = LD(dr);
+    __m512 vur = LD(ur);
+    __m512 vpr = LD(pr);
 
     // Sound speed and check for vacuum.
-    __m512 vgama = _mm512_set1_ps(GAMA);
-    __m512 vg4 = _mm512_set1_ps(G4);
-    __m512 vcl = _mm512_sqrt_ps(_mm512_div_ps(_mm512_mul_ps(vgama, vpl), vdl));
-    __m512 vcr = _mm512_sqrt_ps(_mm512_div_ps(_mm512_mul_ps(vgama, vpr), vdr));
-    __mmask16 vacuum_mask = _mm512_cmp_ps_mask(_mm512_mul_ps(vg4, _mm512_add_ps(vcl, vcr)),
-                                               _mm512_sub_ps(vur, vul),
+    __m512 vcl = SQRT(DIV(MUL(gama, vpl), vdl));
+    __m512 vcr = SQRT(DIV(MUL(gama, vpr), vdr));
+    __mmask16 vacuum_mask = _mm512_cmp_ps_mask(MUL(g4, ADD(vcl, vcr)),
+                                               SUB(vur, vul),
                                                _MM_CMPINT_LE);
 
     if (vacuum_mask != 0x0)
     {
         cerr << "VACUUM" << endl;
+
         exit(1);
     }
 
     __m512 vpm, vum, vd, vu, vp;
     starpu_16(vdl, vul, vpl, vcl, vdr, vur, vpr, vcr, &vpm, &vum);
     sample_16(vdl, vul, vpl, vcl, vdr, vur, vpr, vcr, vpm, vum, &vd, &vu, &vp);
-    _mm512_store_ps(d, vd);
-    _mm512_store_ps(u, vu);
-    _mm512_store_ps(p, vp);
+    ST(d, vd);
+    ST(u, vu);
+    ST(p, vp);
 }
 
 #endif
