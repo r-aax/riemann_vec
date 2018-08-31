@@ -137,8 +137,6 @@ static void guessp(float dl, float ul, float pl, float cl,
 /// Purpose is to evaluate the pressure functions
 /// fl and fr in exact Riemann solver
 /// and their first derivatives.
-///
-/// TODO:
 static void prefun(float &f, float &fd, float &p,
                    float &dk, float &pk, float &ck)
 {
@@ -167,7 +165,16 @@ static void prefun(float &f, float &fd, float &p,
 /// Purpose is to compute the solution for pressure
 /// and velocity in the Star Region.
 ///
-/// TODO:
+/// \param[in] dl - left side density
+/// \param[in] ul - left side velocity
+/// \param[in] pl - left side pressure
+/// \param[in] cl - left side sound velocity
+/// \param[in] dr - right side density
+/// \param[in] ur - right side velocity
+/// \param[in] pr - right side pressure
+/// \param[in] cr - right side sound velocity
+/// \param[in] p - pressure in star region
+/// \param[out] u - velocity in star region
 static void starpu(float dl, float ul, float pl, float cl,
                    float dr, float ur, float pr, float cr,
                    float &p, float &u)
@@ -219,7 +226,16 @@ static void starpu(float dl, float ul, float pl, float cl,
 /// Purpose is to compute the solution for pressure
 /// and velocity in the Star Region.
 ///
-/// TODO:
+/// \param[in] vdl - left side density
+/// \param[in] vul - left side velocity
+/// \param[in] vpl - left side pressure
+/// \param[in] vcl - left side sound velocity
+/// \param[in] vdr - right side density
+/// \param[in] vur - right side velocity
+/// \param[in] vpr - right side pressure
+/// \param[in] vcr - right side sound velocity
+/// \param[out] vp - pressure in star region
+/// \param[out] vu - velocity in star region
 static void starpu_16(__m512 vdl, __m512 vul, __m512 vpl, __m512 vcl,
                       __m512 vdr, __m512 vur, __m512 vpr, __m512 vcr,
                       __m512 *vp, __m512 *vu)
@@ -239,9 +255,46 @@ static void starpu_16(__m512 vdl, __m512 vul, __m512 vpl, __m512 vcl,
 
     for (int i = 0; i < 16; i++)
     {
-        starpu(arr_dl[i], arr_ul[i], arr_pl[i], arr_cl[i],
-               arr_dr[i], arr_ur[i], arr_pr[i], arr_cr[i],
-               arr_p[i], arr_u[i]);
+        const int nriter = 20;
+        const float tolpre = 1.0e-6;
+        float change, fl, fld, fr, frd, pold, pstart, udiff;
+
+        // Guessed value pstart is computed.
+        guessp(arr_dl[i], arr_ul[i], arr_pl[i], arr_cl[i], arr_dr[i], arr_ur[i], arr_pr[i], arr_cr[i], pstart);
+        pold = pstart;
+        udiff = arr_ur[i] - arr_ul[i];
+
+        int i = 1;
+
+        for ( ; i <= nriter; i++)
+        {
+            prefun(fl, fld, pold, arr_dl[i], arr_pl[i], arr_cl[i]);
+            prefun(fr, frd, pold, arr_dr[i], arr_pr[i], arr_cr[i]);
+            arr_p[i] = pold - (fl + fr + udiff) / (fld + frd);
+            change = 2.0 * abs((arr_p[i] - pold) / (arr_p[i] + pold));
+
+            if (change <= tolpre)
+            {
+                break;
+            }
+
+            if (arr_p[i] < 0.0)
+            {
+                arr_p[i] = tolpre;
+            }
+
+            pold = arr_p[i];
+        }
+
+        if (i > nriter)
+        {
+            cout << "divergence in Newton-Raphson iteration" << endl;
+
+            exit(1);
+        }
+
+        // compute velocity in star region
+        arr_u[i] = 0.5*(arr_ul[i] + arr_ur[i] + fr - fl);
     }
 
     *vp = _mm512_load_ps(&arr_p[0]);
@@ -256,7 +309,17 @@ static void starpu_16(__m512 vdl, __m512 vul, __m512 vpl, __m512 vcl,
 /// in terms of the 'speed' s = x/t. Sampled
 /// values are d, u, p.
 ///
-/// TODO:
+/// \param[in] dl - left side density
+/// \param[in] ul - left side velocity
+/// \param[in] pl - left side pressure
+/// \param[in] cl - left side sound velocity
+/// \param[in] dr - right side density
+/// \param[in] ur - right side velocity
+/// \param[in] pr - right side pressure
+/// \param[in] cr - right side sound velocity
+/// \param[out] od - result density
+/// \param[out] ou - result velocity
+/// \param[out] op - result pressure
 static void sample_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
                       __m512 dr, __m512 ur, __m512 pr, __m512 cr,
                       __m512 pm, __m512 um,
