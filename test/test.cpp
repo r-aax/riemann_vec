@@ -28,7 +28,7 @@ using namespace std;
 ///
 /// 0 - small test mode
 /// 1 - big test mode
-#define TEST_MODE 1
+#define TEST_MODE 0
 
 /// \brief Test cases in big mode.
 #define TEST_CASES_BIG 419996
