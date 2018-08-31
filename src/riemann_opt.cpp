@@ -253,59 +253,28 @@ static void guessp_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
 /// \param[in] dk - ?
 /// \param[in] pk - ?
 /// \param[in] ck - ?
-static void prefun(float &f, float &fd, float p,
-                   float dk, float pk, float ck)
-{
-    float ak, bk, pratio, qrt;
-
-    if (p <= pk)
-    {
-        // Rarefaction wave.
-        pratio = p / pk;
-        f = G4 * ck * (pow(pratio, G1) - 1.0);
-        fd = (1.0 / (dk * ck)) * pow(pratio, -G2);
-    }
-    else
-    {
-        // Shock wave.
-        ak = G5 / dk;
-        bk = G6 * pk;
-        qrt = sqrt(ak / (bk + p));
-        f = (p - pk) * qrt;
-        fd = (1.0 - 0.5 * (p - pk) / (bk + p)) * qrt;
-    }
-}
-
-/// \brief
-///
-/// Purpose is to evaluate the pressure functions
-/// fl and fr in exact Riemann solver
-/// and their first derivatives.
-///
-/// \param[in,out] f - ?
-/// \param[in,out] fd - ?
-/// \param[in] p - ?
-/// \param[in] dk - ?
-/// \param[in] pk - ?
-/// \param[in] ck - ?
-/// \param[in] mask - mask for operations
+/// \param[in] m - mask for operations
 static void prefun_16(__m512 *f, __m512 *fd, __m512 p,
                       __m512 dk, __m512 pk, __m512 ck,
-                      __mmask16 mask)
+                      __mmask16 m)
 {
-    for (int i = 0; i < 16; i++)
-    {
-        if ((mask & (1 << i)) != 0x0)
-        {
-            float f_ = Get(*f, i);
-            float fd_ = Get(*fd, i);
-
-            prefun(f_, fd_, Get(p, i), Get(dk, i), Get(pk, i), Get(ck, i));
-
-            Set(f, i, f_);
-            Set(fd, i, fd_);
-        }
-    }
+    __mmask16 cond = _mm512_mask_cmp_ps_mask(m, p, pk, _MM_CMPINT_LE);
+    __m512 pratio = _mm512_mask_div_ps(z, cond, p, pk);
+    *f = _mm512_mask_mul_ps(*f, cond, MUL(g4, ck),
+                            SUB(_mm512_mask_pow_ps(z, cond, pratio, g1), v1));
+    *fd = _mm512_mask_mul_ps(*fd, cond,
+                             _mm512_mask_div_ps(z, cond, v1, MUL(dk, ck)),
+                             _mm512_mask_pow_ps(z, cond, pratio, SUB(z, g2)));
+    __mmask16 ncond = m & ~cond;
+    __m512 ak = _mm512_mask_div_ps(z, ncond, g5, dk);
+    __m512 bk = _mm512_mask_mul_ps(z, ncond, g6, pk);
+    __m512 qrt = _mm512_mask_sqrt_ps(z, ncond,
+                                      _mm512_mask_div_ps(z, ncond, ak, ADD(bk, p)));
+    *f = _mm512_mask_mul_ps(*f, ncond, SUB(p, pk), qrt);
+    *fd = _mm512_mask_mul_ps(*fd, ncond, qrt,
+                             SUB(v1, MUL(SET1(0.5), _mm512_mask_div_ps(z, ncond,
+                                                                       SUB(p, pk),
+                                                                       ADD(bk, p)))));
 }
 
 /// \brief
