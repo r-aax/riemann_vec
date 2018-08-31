@@ -52,6 +52,9 @@ using namespace std;
 /// \brief Short name for min intrinsic.
 #define MIN(va, vb) _mm512_min_ps(va, vb)
 
+/// \bries Short name for cmp.
+#define CMP(va, vb, cmp) _mm512_cmp_ps_mask(va, vb, cmp)
+
 /// \brief Short name for setzero intrinsic.
 #define SETZERO() _mm512_setzero_ps()
 
@@ -387,34 +390,16 @@ static void sample_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
 /// \param[out] d - result density reference
 /// \param[out] u - result velocity reference
 /// \param[out] p - result pressure reference
-static void riemann_16(float *dl, float *ul, float *pl,
-                       float *dr, float *ur, float *pr,
-                       float *d, float *u, float *p)
+static void riemann_16(__m512 dl, __m512 ul, __m512 pl,
+                       __m512 dr, __m512 ur, __m512 pr,
+                       __m512 *d, __m512 *u, __m512 *p)
 {
-    __assume_aligned(dl, 64);
-    __assume_aligned(ul, 64);
-    __assume_aligned(pl, 64);
-    __assume_aligned(dr, 64);
-    __assume_aligned(ur, 64);
-    __assume_aligned(pr, 64);
-    __assume_aligned(d, 64);
-    __assume_aligned(u, 64);
-    __assume_aligned(p, 64);
-
-    // Basic data.
-    __m512 vdl = LD(dl);
-    __m512 vul = LD(ul);
-    __m512 vpl = LD(pl);
-    __m512 vdr = LD(dr);
-    __m512 vur = LD(ur);
-    __m512 vpr = LD(pr);
-
-    // Sound speed and check for vacuum.
-    __m512 vcl = SQRT(DIV(MUL(gama, vpl), vdl));
-    __m512 vcr = SQRT(DIV(MUL(gama, vpr), vdr));
-    __mmask16 vacuum_mask = _mm512_cmp_ps_mask(MUL(g4, ADD(vcl, vcr)),
-                                               SUB(vur, vul),
-                                               _MM_CMPINT_LE);
+    __m512 cl = SQRT(DIV(MUL(gama, pl), dl));
+    __m512 cr = SQRT(DIV(MUL(gama, pr), dr));
+    __m512 pm, um;
+    __mmask16 vacuum_mask = CMP(MUL(g4, ADD(cl, cr)),
+                                SUB(ur, ul),
+                                _MM_CMPINT_LE);
 
     if (vacuum_mask != 0x0)
     {
@@ -423,12 +408,8 @@ static void riemann_16(float *dl, float *ul, float *pl,
         exit(1);
     }
 
-    __m512 vpm, vum, vd, vu, vp;
-    starpu_16(vdl, vul, vpl, vcl, vdr, vur, vpr, vcr, &vpm, &vum);
-    sample_16(vdl, vul, vpl, vcl, vdr, vur, vpr, vcr, vpm, vum, &vd, &vu, &vp);
-    ST(d, vd);
-    ST(u, vu);
-    ST(p, vp);
+    starpu_16(dl, ul, pl, cl, dr, ur, pr, cr, &pm, &um);
+    sample_16(dl, ul, pl, cl, dr, ur, pr, cr, pm, um, d, u, p);
 }
 
 #endif
@@ -457,25 +438,36 @@ void riemann_opt(int c,
 
 #else
 
-    float d_, u_, p_;
+    __assume_aligned(dl, 64);
+    __assume_aligned(ul, 64);
+    __assume_aligned(pl, 64);
+    __assume_aligned(dr, 64);
+    __assume_aligned(ur, 64);
+    __assume_aligned(pr, 64);
+    __assume_aligned(d, 64);
+    __assume_aligned(u, 64);
+    __assume_aligned(p, 64);
 
+    __m512 vd, vu, vp;
     int c_tail = c & 0xF;
-    int c_without_tail = c - c_tail;
+    int c_base = c - c_tail;
 
     // Main body.
-    for (int i = 0; i < c_without_tail; i += 16)
+    for (int i = 0; i < c_base; i += 16)
     {
-        riemann_16(&dl[i], &ul[i], &pl[i], &dr[i], &ur[i], &pr[i], &d[i], &u[i], &p[i]);
+        riemann_16(LD(dl + i), LD(ul + i), LD(pl + i),
+                   LD(dr + i), LD(ur + i), LD(pr + i),
+                   &vd, &vu, &vp);
+        ST(d + i, vd);
+        ST(u + i, vu);
+        ST(p + i, vp);
     }
 
     // Tail.
-    for (int i = c_without_tail; i < c; i++)
-    {
-        riemann(dl[i], ul[i], pl[i], dr[i], ur[i], pr[i], d_, u_, p_);
-        d[i] = d_;
-        u[i] = u_;
-        p[i] = p_;
-    }
+    riemann(c_tail,
+            dl + c_base, ul + c_base, pl + c_base,
+            dr + c_base, ur + c_base, pr + c_base,
+            d + c_base, u + c_base, p + c_base);
 
 #endif
 
