@@ -43,6 +43,9 @@ using namespace std;
 /// \brief Short name for sqrt intrinsic.
 #define SQRT(va) _mm512_sqrt_ps(va)
 
+/// \brief Short name for abs intrinsic.
+#define ABS(v) _mm512_abs_ps(v)
+
 /// \brief Short name for setzero intrinsic.
 #define SETZERO() _mm512_setzero_ps()
 
@@ -110,6 +113,23 @@ static void Set(__m512 *v, int i, float f)
     ST(&arr[0], *v);
     arr[i] = f;
     *v = LD(&arr[0]);
+}
+
+/// \brief Print.
+///
+/// \param[in] v - vector
+static void Print(__m512 v)
+{
+    float arr[16];
+
+    ST(&arr[0], v);
+
+    printf("[");
+    for (int i = 0; i < 16; i++)
+    {
+        printf(" %f ", arr[i]);
+    }
+    printf("]\n");
 }
 
 /// \brief 
@@ -265,18 +285,23 @@ static void prefun(float &f, float &fd, float p,
 /// \param[in] dk - ?
 /// \param[in] pk - ?
 /// \param[in] ck - ?
+/// \param[in] mask - mask for operations
 static void prefun_16(__m512 *f, __m512 *fd, __m512 p,
-                      __m512 dk, __m512 pk, __m512 ck)
+                      __m512 dk, __m512 pk, __m512 ck,
+                      __mmask16 mask)
 {
     for (int i = 0; i < 16; i++)
     {
-        float f_ = Get(*f, i);
-        float fd_ = Get(*fd, i);
+        if ((mask & (1 << i)) != 0x0)
+        {
+            float f_ = Get(*f, i);
+            float fd_ = Get(*fd, i);
 
-        prefun(f_, fd_, Get(p, i), Get(dk, i), Get(pk, i), Get(ck, i));
+            prefun(f_, fd_, Get(p, i), Get(dk, i), Get(pk, i), Get(ck, i));
 
-        Set(f, i, f_);
-        Set(fd, i, fd_);
+            Set(f, i, f_);
+            Set(fd, i, fd_);
+        }
     }
 }
 
@@ -306,8 +331,41 @@ static void starpu_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
     const int nriter = 20;
     __m512 change, fl, fld, fr, frd;
     int iter;
+    __mmask16 m, cond_break, cond_neg;
+    __m512 z = SETZERO();
 
-#if 1
+    m = 0xFFFF;
+
+    for (iter = 1; (iter <= nriter) && (m != 0x0); iter++)
+    {
+        prefun_16(&fl, &fld, pold, dl, pl, cl, m);
+        prefun_16(&fr, &frd, pold, dr, pr, cr, m);
+        *p = _mm512_mask_sub_ps(*p, m, pold,
+                                _mm512_mask_div_ps(z, m,
+                                                   ADD(ADD(fl, fr), udiff),
+                                                   ADD(fld, frd)));
+        change = _mm512_mask_mul_ps(z, m,
+                                    SET1(2.0),
+                                    ABS(_mm512_mask_div_ps(z, m,
+                                                           SUB(*p, pold),
+                                                           ADD(*p, pold))));
+        cond_break = _mm512_mask_cmp_ps_mask(m, change, tolpre, _MM_CMPINT_LE);
+        m &= ~cond_break;
+        cond_neg = _mm512_mask_cmp_ps_mask(m, *p, z, _MM_CMPINT_LT);
+        *p = _mm512_mask_mov_ps(*p, cond_neg, tolpre);
+        pold = _mm512_mask_mov_ps(pold, m, *p);
+    }
+
+    if (iter > nriter)
+    {
+        cout << "divergence in Newton-Raphson iteration" << endl;
+
+        exit(1);
+    }
+
+    *u = MUL(SET1(0.5), ADD(ADD(ul, ur), SUB(fr, fl)));
+
+#if 0
     for (int i = 0; i < 16; i++)
     {
         for (iter = 1 ; iter <= nriter; iter++)
