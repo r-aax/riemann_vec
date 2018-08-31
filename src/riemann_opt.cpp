@@ -301,25 +301,31 @@ static void starpu_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
 {
     __m512 tolpre = SET1(1.0e-6);
     __m512 pold;
-
     guessp_16(dl, ul, pl, cl, dr, ur, pr, cr, &pold);
-
     __m512 udiff = SUB(ur, ul);
-
     const int nriter = 20;
-    float change, fl, fld, fr, frd;
+    __m512 change, fl, fld, fr, frd;
     int iter;
 
+#if 1
     for (int i = 0; i < 16; i++)
     {
         for (iter = 1 ; iter <= nriter; iter++)
         {
-            prefun(fl, fld, Get(pold, i), Get(dl, i), Get(pl, i), Get(cl, i));
-            prefun(fr, frd, Get(pold, i), Get(dr, i), Get(pr, i), Get(cr, i));
-            Set(p, i, Get(pold, i) - (fl + fr + Get(udiff, i)) / (fld + frd));
-            change = 2.0 * abs((Get(*p, i) - Get(pold, i)) / (Get(*p, i) + Get(pold, i)));
+            float fl_ = Get(fl, i);
+            float fld_ = Get(fld, i);
+            prefun(fl_, fld_, Get(pold, i), Get(dl, i), Get(pl, i), Get(cl, i));
+            Set(&fl, i, fl_);
+            Set(&fld, i, fld_);
+            float fr_ = Get(fr, i);
+            float frd_ = Get(frd, i);
+            prefun(fr_, frd_, Get(pold, i), Get(dr, i), Get(pr, i), Get(cr, i));
+            Set(&fr, i, fr_);
+            Set(&frd, i, frd_);
+            Set(p, i, Get(pold, i) - (Get(fl, i) + Get(fr, i) + Get(udiff, i)) / (Get(fld, i) + Get(frd, i)));
+            Set(&change, i, 2.0 * abs((Get(*p, i) - Get(pold, i)) / (Get(*p, i) + Get(pold, i))));
 
-            if (change <= Get(tolpre, i))
+            if (Get(change, i) <= Get(tolpre, i))
             {
                 break;
             }
@@ -340,8 +346,10 @@ static void starpu_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
         }
 
         // compute velocity in star region
-        Set(u, i, 0.5*(Get(ul, i) + Get(ur, i) + fr - fl));
+        Set(u, i, 0.5*(Get(ul, i) + Get(ur, i) + Get(fr, i) - Get(fl, i)));
     }
+#endif
+
 }
 
 /// \brief
