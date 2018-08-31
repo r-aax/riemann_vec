@@ -176,27 +176,22 @@ static void guessp_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
     pmin = MIN(pl, pr);
     pmax = MAX(pl, pr);
     qmax = DIV(pmax, pmin);
-    cond_pvrs = _mm512_cmp_ps_mask(qmax, quser, _MM_CMPINT_LE)
-                && _mm512_cmp_ps_mask(pmin, ppv, _MM_CMPINT_LE)
-                && _mm512_cmp_ps_mask(ppv, pmax, _MM_CMPINT_LE);
+    cond_pvrs = CMP(qmax, quser, _MM_CMPINT_LE)
+                && CMP(pmin, ppv, _MM_CMPINT_LE)
+                && CMP(ppv, pmax, _MM_CMPINT_LE);
     *pm = _mm512_mask_mov_ps(*pm, cond_pvrs, ppv);
     cond_ppv = _mm512_mask_cmp_ps_mask(~cond_pvrs, ppv, pmin, _MM_CMPINT_LT);
     ncond_ppv = ~cond_pvrs & ~cond_ppv;
     pq = _mm512_mask_pow_ps(z, cond_ppv,
-                            _mm512_mask_div_ps(z, cond_ppv, pl, pr),
-                            g1);
+                            _mm512_mask_div_ps(z, cond_ppv, pl, pr), g1);
     um = _mm512_mask_div_ps(z, cond_ppv,
                             ADD(ADD(MUL(pq, _mm512_mask_div_ps(z, cond_ppv, ul, cl)),
                                     _mm512_mask_div_ps(z, cond_ppv, ur, cr)),
                                 MUL(g4, SUB(pq, v1))),
                             ADD(_mm512_mask_div_ps(z, cond_ppv, pq, cl),
                                 _mm512_mask_div_ps(z, cond_ppv, v1, cr)));
-    ptl = _mm512_mask_add_ps(z, cond_ppv, v1,
-                             MUL(g7,
-                                 _mm512_mask_div_ps(z, cond_ppv, SUB(ul, um), cl)));
-    ptr = _mm512_mask_add_ps(z, cond_ppv, v1,
-                             MUL(g7,
-                                 _mm512_mask_div_ps(z, cond_ppv, SUB(um, ur), cr)));
+    ptl = ADD(v1, MUL(g7, _mm512_mask_div_ps(z, cond_ppv, SUB(ul, um), cl)));
+    ptr = ADD(v1, MUL(g7, _mm512_mask_div_ps(z, cond_ppv, SUB(um, ur), cr)));
     *pm = _mm512_mask_mul_ps(*pm, cond_ppv, half,
                              ADD(_mm512_mask_pow_ps(z, cond_ppv, MUL(pl, ptl), g3),
                                  _mm512_mask_pow_ps(z, cond_ppv, MUL(pr, ptr), g3)));
@@ -231,22 +226,25 @@ static void prefun_16(__m512 *f, __m512 *fd, __m512 p,
                       __mmask16 m)
 {
     __mmask16 cond = _mm512_mask_cmp_ps_mask(m, p, pk, _MM_CMPINT_LE);
+    __mmask16 ncond = m & ~cond;
     __m512 pratio = _mm512_mask_div_ps(z, cond, p, pk);
+    __m512 ak = _mm512_mask_div_ps(z, ncond, g5, dk);
+    __m512 bk = MUL(g6, pk);
+    __m512 qrt = _mm512_mask_sqrt_ps(z, ncond,
+                                     _mm512_mask_div_ps(z, ncond, ak, ADD(bk, p)));
+
+    // Output values.
     *f = _mm512_mask_mul_ps(*f, cond, MUL(g4, ck),
                             SUB(_mm512_mask_pow_ps(z, cond, pratio, g1), v1));
     *fd = _mm512_mask_mul_ps(*fd, cond,
                              _mm512_mask_div_ps(z, cond, v1, MUL(dk, ck)),
                              _mm512_mask_pow_ps(z, cond, pratio, SUB(z, g2)));
-    __mmask16 ncond = m & ~cond;
-    __m512 ak = _mm512_mask_div_ps(z, ncond, g5, dk);
-    __m512 bk = _mm512_mask_mul_ps(z, ncond, g6, pk);
-    __m512 qrt = _mm512_mask_sqrt_ps(z, ncond,
-                                      _mm512_mask_div_ps(z, ncond, ak, ADD(bk, p)));
     *f = _mm512_mask_mul_ps(*f, ncond, SUB(p, pk), qrt);
     *fd = _mm512_mask_mul_ps(*fd, ncond, qrt,
-                             SUB(v1, MUL(SET1(0.5), _mm512_mask_div_ps(z, ncond,
-                                                                       SUB(p, pk),
-                                                                       ADD(bk, p)))));
+                             SUB(v1, MUL(SET1(0.5),
+                                         _mm512_mask_div_ps(z, ncond,
+                                                            SUB(p, pk),
+                                                            ADD(bk, p)))));
 }
 
 /// \brief
