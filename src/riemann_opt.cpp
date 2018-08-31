@@ -270,14 +270,14 @@ static void prefun_16(__m512 *f, __m512 *fd, __m512 *p,
 {
     for (int i = 0; i < 16; i++)
     {
-        float f_ = Get(f, i);
-        float fd_ = Get(fd, i);
-        float p_ = Get(p, i);
-        float dk_ = Get(dk, i);
-        float pk_ = Get(pk, i);
-        float ck_ = Get(ck, i);
+        float f_ = Get(*f, i);
+        float fd_ = Get(*fd, i);
+        float p_ = Get(*p, i);
+        float dk_ = Get(*dk, i);
+        float pk_ = Get(*pk, i);
+        float ck_ = Get(*ck, i);
 
-        prefun(f, fd, p, dk, pk, ck);
+        prefun(f_, fd_, p_, dk_, pk_, ck_);
 
         Set(f, i, f_);
         Set(fd, i, fd_);
@@ -314,14 +314,13 @@ static void starpu_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
 
     __m512 udiff = SUB(ur, ul);
 
+    const int nriter = 20;
+    float change, fl, fld, fr, frd;
+    int iter;
+
     for (int i = 0; i < 16; i++)
     {
-        const int nriter = 20;
-        float change, fl, fld, fr, frd;
-
-        int ii = 1;
-
-        for ( ; ii <= nriter; ii++)
+        for (iter = 1 ; iter <= nriter; iter++)
         {
             float dl_ = Get(dl, i);
             float pl_ = Get(pl, i);
@@ -354,7 +353,7 @@ static void starpu_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
             Set(&pold, i, Get(*p, i));
         }
 
-        if (ii > nriter)
+        if (iter > nriter)
         {
             cout << "divergence in Newton-Raphson iteration" << endl;
 
