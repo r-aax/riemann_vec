@@ -323,60 +323,57 @@ static void starpu_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
 /// \param[in] ur - right side velocity
 /// \param[in] pr - right side pressure
 /// \param[in] cr - right side sound velocity
-/// \param[out] od - result density
-/// \param[out] ou - result velocity
-/// \param[out] op - result pressure
+/// \param[out] d - result density
+/// \param[out] u - result velocity
+/// \param[out] p - result pressure
 static void sample_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
                       __m512 dr, __m512 ur, __m512 pr, __m512 cr,
                       __m512 pm, __m512 um,
-                      __m512 *od, __m512 *ou, __m512 *op)
+                      __m512 *d, __m512 *u, __m512 *p)
 {
-    __m512 d, u, p, c, ums, pms, sh, st, s, uc;
+    __m512 c, ums, pms, sh, st, s, uc;
     __mmask16 cond_um, cond_pm, cond_sh, cond_st, cond_s, cond_sh_st;
 
     // d/u/p/c/ums
     cond_um = _mm512_cmp_ps_mask(um, z, _MM_CMPINT_LT);
-    d = _mm512_mask_blend_ps(cond_um, dl, dr);
-    u = _mm512_mask_blend_ps(cond_um, ul, ur);
-    p = _mm512_mask_blend_ps(cond_um, pl, pr);
+    *d = _mm512_mask_blend_ps(cond_um, dl, dr);
+    *u = _mm512_mask_blend_ps(cond_um, ul, ur);
+    *p = _mm512_mask_blend_ps(cond_um, pl, pr);
     c = _mm512_mask_blend_ps(cond_um, cl, cr);
     ums = um;
-    u = _mm512_mask_sub_ps(u, cond_um, z, u);
+    *u = _mm512_mask_sub_ps(*u, cond_um, z, *u);
     ums = _mm512_mask_sub_ps(ums, cond_um, z, ums);
 
     // Calculate main values.
-    pms = DIV(pm, p);
-    sh = SUB(u, c);
+    pms = DIV(pm, *p);
+    sh = SUB(*u, c);
     st = _mm512_fnmadd_ps(POW(pms, g1), c, ums);
-    s = _mm512_fnmadd_ps(c, SQRT(_mm512_fmadd_ps(g2, pms, g1)), u);
+    s = _mm512_fnmadd_ps(c, SQRT(_mm512_fmadd_ps(g2, pms, g1)), *u);
 
     // Conditions.
-    cond_pm = _mm512_cmp_ps_mask(pm, p, _MM_CMPINT_LE);
+    cond_pm = _mm512_cmp_ps_mask(pm, *p, _MM_CMPINT_LE);
     cond_sh = _mm512_mask_cmp_ps_mask(cond_pm, sh, z, _MM_CMPINT_LT);
     cond_st = _mm512_mask_cmp_ps_mask(cond_sh, st, z, _MM_CMPINT_LT);
     cond_s = _mm512_mask_cmp_ps_mask(~cond_pm, s, z, _MM_CMPINT_LT);
 
     // Store.
-    d = _mm512_mask_mov_ps(d, cond_st, MUL(d, POW(pms, igama)));
-    d = _mm512_mask_mov_ps(d, cond_s, MUL(d, DIV(ADD(pms, g6), _mm512_fmadd_ps(pms, g6, v1))));
-    u = _mm512_mask_mov_ps(u, cond_st | cond_s, ums);
-    p = _mm512_mask_mov_ps(p, cond_st | cond_s, pm);
+    *d = _mm512_mask_mov_ps(*d, cond_st, MUL(*d, POW(pms, igama)));
+    *d = _mm512_mask_mov_ps(*d, cond_s, MUL(*d, DIV(ADD(pms, g6), _mm512_fmadd_ps(pms, g6, v1))));
+    *u = _mm512_mask_mov_ps(*u, cond_st | cond_s, ums);
+    *p = _mm512_mask_mov_ps(*p, cond_st | cond_s, pm);
 
     // Low prob - ignnore it.
     cond_sh_st = cond_sh & ~cond_st;
     if (cond_sh_st)
     {
-        u = _mm512_mask_mov_ps(u, cond_sh_st, MUL(g5, _mm512_fmadd_ps(g7, u, c)));
-        uc = DIV(u, c);
-        d = _mm512_mask_mov_ps(d, cond_sh_st, MUL(d, POW(uc, g4)));
-        p = _mm512_mask_mov_ps(p, cond_sh_st, MUL(p, POW(uc, g3)));
+        *u = _mm512_mask_mov_ps(*u, cond_sh_st, MUL(g5, _mm512_fmadd_ps(g7, *u, c)));
+        uc = DIV(*u, c);
+        *d = _mm512_mask_mov_ps(*d, cond_sh_st, MUL(*d, POW(uc, g4)));
+        *p = _mm512_mask_mov_ps(*p, cond_sh_st, MUL(*p, POW(uc, g3)));
     }
 
     // Final store.
-    u = _mm512_mask_sub_ps(u, cond_um, z, u);
-    *od = d;
-    *ou = u;
-    *op = p;
+    *u = _mm512_mask_sub_ps(*u, cond_um, z, *u);
 }
 
 /// \brief Riemann solver for 16 cases.
