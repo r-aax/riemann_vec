@@ -32,6 +32,9 @@
 #define G8 ((GAMA) - 1.0)
 
 // Prototypes.
+void riemann(float dl, float ul, float pl,
+             float dr, float ur, float pr,
+             float &d, float &u, float &p);
 void riemann(int c,
              float *dl, float *ul, float *pl,
              float *dr, float *ur, float *pr,

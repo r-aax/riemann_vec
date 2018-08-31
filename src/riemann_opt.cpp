@@ -257,149 +257,11 @@ static void starpu_16(__m512 vdl, __m512 vul, __m512 vpl, __m512 vcl,
 /// values are d, u, p.
 ///
 /// TODO:
-static void sample(float dl, float ul, float pl, float cl,
-                   float dr, float ur, float pr, float cr,
-                   const float pm, const float um,
-                   float &d, float &u, float &p)
-{
-    float c, cml, cmr, pml, pmr, shl, shr, sl, sr, stl, str;
-
-    if (0.0 <= um)
-    {
-        // Sampling point lies to the left of the contact discontinuity.
-        if (pm <= pl)
-        {
-            // Left rarefaction.
-            shl = ul - cl;
-
-            if (0.0 <= shl)
-            {
-                // Sampled point is left data state.
-                d = dl;
-                u = ul;
-                p = pl;
-            }
-            else
-            {
-                cml = cl * pow(pm / pl, G1);
-                stl = um - cml;
-
-                if (0.0 > stl)
-                {
-                    // Sampled point is star left state.
-                    d = dl * pow(pm / pl, 1.0 / GAMA);
-                    u = um;
-                    p = pm;
-                }
-                else
-                {
-                    // Sampled point is inside left fan.
-                    u = G5 * (cl + G7 * ul);
-                    c = G5 * (cl + G7 * ul);
-                    d = dl * pow(c / cl, G4);
-                    p = pl * pow(c / cl, G3);
-                }
-            }
-        }
-        else
-        {
-            // Left shock.
-            pml = pm / pl;
-            sl = ul - cl * sqrt(G2 * pml + G1);
-
-            if (0.0 <= sl)
-            {
-                // Sampled point is left data state.
-                d = dl;
-                u = ul;
-                p = pl;
-            }
-            else
-            {
-                // Sampled point is star left state.
-                d = dl * (pml + G6) / (pml * G6 + 1.0);
-                u = um;
-                p = pm;
-            }
-        }
-    }
-    else
-    {
-        // Sampling point lies to the right of the contact discontinuity.
-        if (pm > pr)
-        {
-            // Right shock.
-            pmr = pm / pr;
-            sr  = ur + cr * sqrt(G2 * pmr + G1);
-
-            if (0.0 >= sr)
-            {
-                // Sampled point is right data state.
-                d = dr;
-                u = ur;
-                p = pr;
-            }
-            else
-            {
-                // Sampled point is star right state.
-                d = dr * (pmr + G6) / (pmr * G6 + 1.0);
-                u = um;
-                p = pm;
-            }
-        }
-        else
-        {
-            // Right rarefaction.
-            shr = ur + cr;
-            if (0.0 >= shr)
-            {
-                // Sampled point is right data state.
-                d = dr;
-                u = ur;
-                p = pr;
-            }
-            else
-            {
-                cmr = cr * pow(pm / pr, G1);
-                str = um + cmr;
-
-                if (0.0 <= str)
-                {
-                    // Sampled point is star right state.
-                    d = dr * pow(pm / pr, 1.0 / GAMA);
-                    u = um;
-                    p = pm;
-                }
-                else
-                {
-                    // Sampled point is inside left fan.
-                    u = G5 * (-cr + G7 * ur);
-                    c = G5 * (cr - G7 * ur);
-                    d = dr * pow(c / cr, G4);
-                    p = pr * pow(c / cr, G3);
-                }
-            }
-        }
-    }
-}
-
-/// \brief
-///
-/// Purpose is to sample the solution throughout the wave
-/// pattern. Pressure pm and velocit
-/// star region are known. Sampling is performed
-/// in terms of the 'speed' s = x/t. Sampled
-/// values are d, u, p.
-///
-/// TODO:
 static void sample_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
                       __m512 dr, __m512 ur, __m512 pr, __m512 cr,
                       __m512 pm, __m512 um,
                       __m512 *od, __m512 *ou, __m512 *op)
 {
-
-#if 1
-
     __m512 d, u, p, c, ums, pms, sh, st, s, uc;
     __mmask16 cond_um, cond_pm, cond_sh, cond_st, cond_s, cond_sh_st;
 
@@ -424,7 +286,7 @@ static void sample_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
     cond_sh = _mm512_mask_cmp_ps_mask(cond_pm, sh, z, _MM_CMPINT_LT);
     cond_st = _mm512_mask_cmp_ps_mask(cond_sh, st, z, _MM_CMPINT_LT);
     cond_s = _mm512_mask_cmp_ps_mask(~cond_pm, s, z, _MM_CMPINT_LT);
-    
+
     // Store.
     d = _mm512_mask_mov_ps(d, cond_st, MUL(d, POW(pms, igama)));
     d = _mm512_mask_mov_ps(d, cond_s, MUL(d, DIV(ADD(pms, g6), _mm512_fmadd_ps(pms, g6, v1))));
@@ -446,74 +308,6 @@ static void sample_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
     *od = d;
     *ou = u;
     *op = p;
-
-#else
-
-    float arr_dl[16], arr_ul[16], arr_pl[16], arr_cl[16],
-          arr_dr[16], arr_ur[16], arr_pr[16], arr_cr[16],
-          arr_pm[16], arr_um[16],
-          arr_d[16], arr_u[16], arr_p[16];
-
-    _mm512_store_ps(&arr_dl[0], vdl);
-    _mm512_store_ps(&arr_ul[0], vul);
-    _mm512_store_ps(&arr_pl[0], vpl);
-    _mm512_store_ps(&arr_cl[0], vcl);
-    _mm512_store_ps(&arr_dr[0], vdr);
-    _mm512_store_ps(&arr_ur[0], vur);
-    _mm512_store_ps(&arr_pr[0], vpr);
-    _mm512_store_ps(&arr_cr[0], vcr);
-    _mm512_store_ps(&arr_pm[0], vpm);
-    _mm512_store_ps(&arr_um[0], vum);
-
-    for (int i = 0; i < 16; i++)
-    {
-        sample(arr_dl[i], arr_ul[i], arr_pl[i], arr_cl[i],
-               arr_dr[i], arr_ur[i], arr_pr[i], arr_cr[i],
-               arr_pm[i], arr_um[i],
-               arr_d[i], arr_u[i], arr_p[i]);
-    }
-
-    *vd = _mm512_load_ps(&arr_d[0]);
-    *vu = _mm512_load_ps(&arr_u[0]);
-    *vp = _mm512_load_ps(&arr_p[0]);
-
-#endif
-
-}
-
-/// \brief Riemann solver.
-///
-/// \param[in] dl - left side density
-/// \param[in] ul - left side velocity
-/// \param[in] pl - left  side pressure
-/// \param[in] dr - right side density
-/// \param[in] ur - right side velocity
-/// \param[in] pr - right side pressure
-/// \param[out] d - result density reference
-/// \param[out] u - result velocity reference
-/// \param[out] p - result pressure reference
-static void riemann(float dl, float ul, float pl,
-                    float dr, float ur, float pr,
-                    float &d, float &u, float &p)
-{
-    float pm, um, cl, cr;
-
-    pm = 0.0;
-
-    // Sound speeds.
-    cl = sqrt(GAMA * pl / dl);
-    cr = sqrt(GAMA * pr / dr);
-
-    // Check for vacuum.
-    if (G4 * (cl + cr) <= (ur - ul))
-    {
-        cerr << "VACUUM" << endl;
-        exit(1);
-    }
-
-    // Exact solution.
-    starpu(dl, ul, pl, cl, dr, ur, pr, cr, pm, um);
-    sample(dl, ul, pl, cl, dr, ur, pr, cr, pm, um, d, u, p);
 }
 
 /// \brief Riemann solver for 16 cases.

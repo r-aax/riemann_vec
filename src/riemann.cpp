@@ -302,9 +302,9 @@ static void sample(float dl, float ul, float pl, float cl,
 /// \param[out] d - result density reference
 /// \param[out] u - result velocity reference
 /// \param[out] p - result pressure reference
-static void riemann(float dl, float ul, float pl,
-                    float dr, float ur, float pr,
-                    float &d, float &u, float &p)
+void riemann(float dl, float ul, float pl,
+             float dr, float ur, float pr,
+             float &d, float &u, float &p)
 {
     float pm, um, cl, cr;
 
