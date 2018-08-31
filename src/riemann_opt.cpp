@@ -82,6 +82,36 @@ __m512 g6 = SET1(G6);
 /// \brief G7.
 __m512 g7 = SET1(G7);
 
+/// \brief Get <c>i</c>-th element from vector.
+///
+/// \param[in] v - vector
+/// \param[in] i - index
+///
+/// \return
+/// Element.
+static float Get(__m512 v, int i)
+{
+    float arr[16];
+
+    ST(&arr[0], v);
+
+    return arr[i];
+}
+
+/// \brief Set <c>i</c>-th element in vector.
+///
+/// \param[in,out] v - vector
+/// \param[in] i - index
+/// \param[in] f - value
+static void Set(__m512 *v, int i, float f)
+{
+    float arr[16];
+
+    ST(&arr[0], *v);
+    arr[i] = f;
+    *v = LD(&arr[0]);
+}
+
 /// \brief 
 ///
 /// Purpose is to provide a guessed value for pressure
