@@ -265,18 +265,17 @@ static void starpu_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
                       __m512 dr, __m512 ur, __m512 pr, __m512 cr,
                       __m512 *p, __m512 *u)
 {
+    __m512 tolpre = SET1(1.0e-6);
+    __m512 pold;
+
+    guessp_16(dl, ul, pl, cl, dr, ur, pr, cr, &pold);
+
+    __m512 udiff = SUB(ur, ul);
+
     for (int i = 0; i < 16; i++)
     {
         const int nriter = 20;
-        const float tolpre = 1.0e-6;
-        float change, fl, fld, fr, frd, pold, pstart, udiff;
-
-        // Guessed value pstart is computed.
-        guessp(Get(dl, i), Get(ul, i), Get(pl, i), Get(cl, i),
-               Get(dr, i), Get(ur, i), Get(pr, i), Get(cr, i),
-               pstart);
-        pold = pstart;
-        udiff = Get(ur, i) - Get(ul, i);
+        float change, fl, fld, fr, frd;
 
         int ii = 1;
 
@@ -288,28 +287,29 @@ static void starpu_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
             float dr_ = Get(dr, i);
             float pr_ = Get(pr, i);
             float cr_ = Get(cr, i);
-            prefun(fl, fld, pold, dl_, pl_, cl_);
+            float pold_ = Get(pold, i);
+            prefun(fl, fld, pold_, dl_, pl_, cl_);
             Set(&dl, i, dl_);
             Set(&pl, i, pl_);
             Set(&cl, i, cl_);
-            prefun(fr, frd, pold, dr_, pr_, cr_);
+            prefun(fr, frd, pold_, dr_, pr_, cr_);
             Set(&dr, i, dr_);
             Set(&pr, i, pr_);
             Set(&cr, i, cr_);
-            Set(p, i, pold - (fl + fr + udiff) / (fld + frd));
-            change = 2.0 * abs((Get(*p, i) - pold) / (Get(*p, i) + pold));
+            Set(p, i, pold_ - (fl + fr + Get(udiff, i)) / (fld + frd));
+            change = 2.0 * abs((Get(*p, i) - pold_) / (Get(*p, i) + pold_));
 
-            if (change <= tolpre)
+            if (change <= Get(tolpre, i))
             {
                 break;
             }
 
             if (Get(*p, i) < 0.0)
             {
-                Set(p, i, tolpre);
+                Set(p, i, Get(tolpre, i));
             }
 
-            pold = Get(*p, i);
+            Set(&pold, i, Get(*p, i));
         }
 
         if (ii > nriter)
