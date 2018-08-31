@@ -171,6 +171,53 @@ static void guessp(float dl, float ul, float pl, float cl,
     }
 }
 
+/// \brief 
+///
+/// Purpose is to provide a guessed value for pressure
+/// pm in the Star Region. The choice is made
+/// according to adaptive Riemann solver using
+/// the PVRS, TRRS and TSRS approximate
+/// Riemann solvers. See Sect. 9.5 of Chapt. 9 of Ref. 1.
+///
+/// \param[in] dl - left side density
+/// \param[in] ul - left side velocity
+/// \param[in] pl - left side pressure
+/// \param[in] cl - left side sound speed
+/// \param[in] dr - right side density
+/// \param[in] ur - right side velocity
+/// \param[in] pr - right side pressure
+/// \param[in] cr - right side sound speed
+/// \param[out] pm - pressure
+static void guessp_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
+                      __m512 dr, __m512 ur, __m512 pr, __m512 cr,
+                      __m512 *pm)
+{
+    float a_dl[16], a_ul[16], a_pl[16], a_cl[16],
+          a_dr[16], a_ur[16], a_pr[16], a_cr[16],
+          a_pm[16];
+
+    ST(&a_dl[0], dl);
+    ST(&a_ul[0], dl);
+    ST(&a_pl[0], dl);
+    ST(&a_cl[0], dl);
+    ST(&a_dr[0], dl);
+    ST(&a_ur[0], dl);
+    ST(&a_pr[0], dl);
+    ST(&a_cr[0], dl);
+    ST(&a_pm[0], *pm);
+
+    for (int i = 0; i < 16; i++)
+    {
+        float pm_;
+        guessp(a_dl[i], a_ul[i], a_pl[i], a_cl[i],
+               a_dr[i], a_ur[i], a_pr[i], a_cr[i],
+               pm_);
+        a_pm[i] = pm_;
+    }
+
+    *pm = LD(&a_pm[0]);
+}
+
 /// \brief
 ///
 /// Purpose is to evaluate the pressure functions
