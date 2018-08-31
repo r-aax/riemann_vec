@@ -223,6 +223,13 @@ static void guessp_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
 /// Purpose is to evaluate the pressure functions
 /// fl and fr in exact Riemann solver
 /// and their first derivatives.
+///
+/// \param[in,out] f - ?
+/// \param[in,out] fd - ?
+/// \param[in,out] p - ?
+/// \param[in,out] dk - ?
+/// \param[in,out] pk - ?
+/// \param[in,out] ck - ?
 static void prefun(float &f, float &fd, float &p,
                    float &dk, float &pk, float &ck)
 {
@@ -243,6 +250,41 @@ static void prefun(float &f, float &fd, float &p,
         qrt = sqrt(ak / (bk + p));
         f = (p - pk) * qrt;
         fd = (1.0 - 0.5 * (p - pk) / (bk + p)) * qrt;
+    }
+}
+
+/// \brief
+///
+/// Purpose is to evaluate the pressure functions
+/// fl and fr in exact Riemann solver
+/// and their first derivatives.
+///
+/// \param[in,out] f - ?
+/// \param[in,out] fd - ?
+/// \param[in,out] p - ?
+/// \param[in,out] dk - ?
+/// \param[in,out] pk - ?
+/// \param[in,out] ck - ?
+static void prefun_16(__m512 *f, __m512 *fd, __m512 *p,
+                      __m512 *dk, __m512 *pk, __m512 *ck)
+{
+    for (int i = 0; i < 16; i++)
+    {
+        float f_ = Get(f, i);
+        float fd_ = Get(fd, i);
+        float p_ = Get(p, i);
+        float dk_ = Get(dk, i);
+        float pk_ = Get(pk, i);
+        float ck_ = Get(ck, i);
+
+        prefun(f, fd, p, dk, pk, ck);
+
+        Set(f, i, f_);
+        Set(fd, i, fd_);
+        Set(p, i, p_);
+        Set(dk, i, dk_);
+        Set(pk, i, pk_);
+        Set(ck, i, ck_);
     }
 }
 
