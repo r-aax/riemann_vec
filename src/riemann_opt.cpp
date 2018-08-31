@@ -85,6 +85,9 @@ __m512 g6 = SET1(G6);
 /// \brief G7.
 __m512 g7 = SET1(G7);
 
+/// \brief Constant for starpu.
+__m512 tolpre = SET1(1.0e-6);
+
 /// \brief Get <c>i</c>-th element from vector.
 ///
 /// \param[in] v - vector
@@ -324,17 +327,14 @@ static void starpu_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
                       __m512 dr, __m512 ur, __m512 pr, __m512 cr,
                       __m512 *p, __m512 *u)
 {
-    __m512 tolpre = SET1(1.0e-6);
-    __m512 pold;
-    guessp_16(dl, ul, pl, cl, dr, ur, pr, cr, &pold);
+    __m512 pold, change, fl, fld, fr, frd;
     __m512 udiff = SUB(ur, ul);
+    __mmask16 cond_break, cond_neg;
+    __mmask16 m = 0xFFFF;
     const int nriter = 20;
-    __m512 change, fl, fld, fr, frd;
     int iter;
-    __mmask16 m, cond_break, cond_neg;
-    __m512 z = SETZERO();
 
-    m = 0xFFFF;
+    guessp_16(dl, ul, pl, cl, dr, ur, pr, cr, &pold);
 
     for (iter = 1; (iter <= nriter) && (m != 0x0); iter++)
     {
@@ -364,50 +364,6 @@ static void starpu_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
     }
 
     *u = MUL(SET1(0.5), ADD(ADD(ul, ur), SUB(fr, fl)));
-
-#if 0
-    for (int i = 0; i < 16; i++)
-    {
-        for (iter = 1 ; iter <= nriter; iter++)
-        {
-            float fl_ = Get(fl, i);
-            float fld_ = Get(fld, i);
-            prefun(fl_, fld_, Get(pold, i), Get(dl, i), Get(pl, i), Get(cl, i));
-            Set(&fl, i, fl_);
-            Set(&fld, i, fld_);
-            float fr_ = Get(fr, i);
-            float frd_ = Get(frd, i);
-            prefun(fr_, frd_, Get(pold, i), Get(dr, i), Get(pr, i), Get(cr, i));
-            Set(&fr, i, fr_);
-            Set(&frd, i, frd_);
-            Set(p, i, Get(pold, i) - (Get(fl, i) + Get(fr, i) + Get(udiff, i)) / (Get(fld, i) + Get(frd, i)));
-            Set(&change, i, 2.0 * abs((Get(*p, i) - Get(pold, i)) / (Get(*p, i) + Get(pold, i))));
-
-            if (Get(change, i) <= Get(tolpre, i))
-            {
-                break;
-            }
-
-            if (Get(*p, i) < 0.0)
-            {
-                Set(p, i, Get(tolpre, i));
-            }
-
-            Set(&pold, i, Get(*p, i));
-        }
-
-        if (iter > nriter)
-        {
-            cout << "divergence in Newton-Raphson iteration" << endl;
-
-            exit(1);
-        }
-
-        // compute velocity in star region
-        Set(u, i, 0.5*(Get(ul, i) + Get(ur, i) + Get(fr, i) - Get(fl, i)));
-    }
-#endif
-
 }
 
 /// \brief
