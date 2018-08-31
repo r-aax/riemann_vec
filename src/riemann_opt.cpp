@@ -227,24 +227,29 @@ static void prefun_16(__m512 *f, __m512 *fd, __m512 p,
 {
     __mmask16 cond = _mm512_mask_cmp_ps_mask(m, p, pk, _MM_CMPINT_LE);
     __mmask16 ncond = m & ~cond;
-    __m512 pratio = _mm512_mask_div_ps(z, cond, p, pk);
-    __m512 ak = _mm512_mask_div_ps(z, ncond, g5, dk);
-    __m512 bk = MUL(g6, pk);
-    __m512 qrt = _mm512_mask_sqrt_ps(z, ncond,
-                                     _mm512_mask_div_ps(z, ncond, ak, ADD(bk, p)));
 
-    // Output values.
-    *f = _mm512_mask_mul_ps(*f, cond, MUL(g4, ck),
-                            SUB(_mm512_mask_pow_ps(z, cond, pratio, g1), v1));
-    *fd = _mm512_mask_mul_ps(*fd, cond,
-                             _mm512_mask_div_ps(z, cond, v1, MUL(dk, ck)),
-                             _mm512_mask_pow_ps(z, cond, pratio, SUB(z, g2)));
-    *f = _mm512_mask_mul_ps(*f, ncond, SUB(p, pk), qrt);
-    *fd = _mm512_mask_mul_ps(*fd, ncond, qrt,
-                             SUB(v1, MUL(SET1(0.5),
-                                         _mm512_mask_div_ps(z, ncond,
-                                                            SUB(p, pk),
-                                                            ADD(bk, p)))));
+    if (cond != 0x0)
+    {
+        __m512 pratio = _mm512_mask_div_ps(z, cond, p, pk);
+        *f = _mm512_mask_mul_ps(*f, cond, MUL(g4, ck),
+                                SUB(_mm512_mask_pow_ps(z, cond, pratio, g1), v1));
+        *fd = _mm512_mask_mul_ps(*fd, cond,
+                                 _mm512_mask_div_ps(z, cond, v1, MUL(dk, ck)),
+                                 _mm512_mask_pow_ps(z, cond, pratio, SUB(z, g2)));
+    }
+    if (ncond != 0x0)
+    {
+        __m512 ak = _mm512_mask_div_ps(z, ncond, g5, dk);
+        __m512 bk = MUL(g6, pk);
+        __m512 qrt = _mm512_mask_sqrt_ps(z, ncond,
+                                         _mm512_mask_div_ps(z, ncond, ak, ADD(bk, p)));
+        *f = _mm512_mask_mul_ps(*f, ncond, SUB(p, pk), qrt);
+        *fd = _mm512_mask_mul_ps(*fd, ncond, qrt,
+                                 SUB(v1, MUL(SET1(0.5),
+                                             _mm512_mask_div_ps(z, ncond,
+                                                                SUB(p, pk),
+                                                                ADD(bk, p)))));
+    }
 }
 
 /// \brief
