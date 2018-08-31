@@ -273,11 +273,11 @@ static void starpu_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
     __mmask16 cond_break, cond_neg;
     __mmask16 m = 0xFFFF;
     const int nriter = 20;
-    int iter;
+    int iter = 1;
 
     guessp_16(dl, ul, pl, cl, dr, ur, pr, cr, &pold);
 
-    for (iter = 1; (iter <= nriter) && (m != 0x0); iter++)
+    for (; (iter <= nriter) && (m != 0x0); iter++)
     {
         prefun_16(&fl, &fld, pold, dl, pl, cl, m);
         prefun_16(&fr, &frd, pold, dr, pr, cr, m);
@@ -285,11 +285,10 @@ static void starpu_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
                                 _mm512_mask_div_ps(z, m,
                                                    ADD(ADD(fl, fr), udiff),
                                                    ADD(fld, frd)));
-        change = _mm512_mask_mul_ps(z, m,
-                                    SET1(2.0),
-                                    ABS(_mm512_mask_div_ps(z, m,
-                                                           SUB(*p, pold),
-                                                           ADD(*p, pold))));
+        change = MUL(SET1(2.0),
+                     ABS(_mm512_mask_div_ps(z, m,
+                                            SUB(*p, pold),
+                                            ADD(*p, pold))));
         cond_break = _mm512_mask_cmp_ps_mask(m, change, tolpre, _MM_CMPINT_LE);
         m &= ~cond_break;
         cond_neg = _mm512_mask_cmp_ps_mask(m, *p, z, _MM_CMPINT_LT);
@@ -297,10 +296,10 @@ static void starpu_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
         pold = _mm512_mask_mov_ps(pold, m, *p);
     }
 
+    // Check for divergence.
     if (iter > nriter)
     {
         cout << "divergence in Newton-Raphson iteration" << endl;
-
         exit(1);
     }
 
@@ -398,10 +397,10 @@ static void riemann_16(__m512 dl, __m512 ul, __m512 pl,
                                 SUB(ur, ul),
                                 _MM_CMPINT_LE);
 
+    // Vacuum check.
     if (vacuum_mask != 0x0)
     {
         cerr << "VACUUM" << endl;
-
         exit(1);
     }
 
