@@ -226,12 +226,12 @@ static void guessp_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
 ///
 /// \param[in,out] f - ?
 /// \param[in,out] fd - ?
-/// \param[in,out] p - ?
-/// \param[in,out] dk - ?
-/// \param[in,out] pk - ?
-/// \param[in,out] ck - ?
-static void prefun(float &f, float &fd, float &p,
-                   float &dk, float &pk, float &ck)
+/// \param[in] p - ?
+/// \param[in] dk - ?
+/// \param[in] pk - ?
+/// \param[in] ck - ?
+static void prefun(float &f, float &fd, float p,
+                   float dk, float pk, float ck)
 {
     float ak, bk, pratio, qrt;
 
@@ -261,30 +261,22 @@ static void prefun(float &f, float &fd, float &p,
 ///
 /// \param[in,out] f - ?
 /// \param[in,out] fd - ?
-/// \param[in,out] p - ?
-/// \param[in,out] dk - ?
-/// \param[in,out] pk - ?
-/// \param[in,out] ck - ?
-static void prefun_16(__m512 *f, __m512 *fd, __m512 *p,
-                      __m512 *dk, __m512 *pk, __m512 *ck)
+/// \param[in] p - ?
+/// \param[in] dk - ?
+/// \param[in] pk - ?
+/// \param[in] ck - ?
+static void prefun_16(__m512 *f, __m512 *fd, __m512 p,
+                      __m512 dk, __m512 pk, __m512 ck)
 {
     for (int i = 0; i < 16; i++)
     {
         float f_ = Get(*f, i);
         float fd_ = Get(*fd, i);
-        float p_ = Get(*p, i);
-        float dk_ = Get(*dk, i);
-        float pk_ = Get(*pk, i);
-        float ck_ = Get(*ck, i);
 
-        prefun(f_, fd_, p_, dk_, pk_, ck_);
+        prefun(f_, fd_, Get(p, i), Get(dk, i), Get(pk, i), Get(ck, i));
 
         Set(f, i, f_);
         Set(fd, i, fd_);
-        Set(p, i, p_);
-        Set(dk, i, dk_);
-        Set(pk, i, pk_);
-        Set(ck, i, ck_);
     }
 }
 
@@ -322,23 +314,10 @@ static void starpu_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
     {
         for (iter = 1 ; iter <= nriter; iter++)
         {
-            float dl_ = Get(dl, i);
-            float pl_ = Get(pl, i);
-            float cl_ = Get(cl, i);
-            float dr_ = Get(dr, i);
-            float pr_ = Get(pr, i);
-            float cr_ = Get(cr, i);
-            float pold_ = Get(pold, i);
-            prefun(fl, fld, pold_, dl_, pl_, cl_);
-            Set(&dl, i, dl_);
-            Set(&pl, i, pl_);
-            Set(&cl, i, cl_);
-            prefun(fr, frd, pold_, dr_, pr_, cr_);
-            Set(&dr, i, dr_);
-            Set(&pr, i, pr_);
-            Set(&cr, i, cr_);
-            Set(p, i, pold_ - (fl + fr + Get(udiff, i)) / (fld + frd));
-            change = 2.0 * abs((Get(*p, i) - pold_) / (Get(*p, i) + pold_));
+            prefun(fl, fld, Get(pold, i), Get(dl, i), Get(pl, i), Get(cl, i));
+            prefun(fr, frd, Get(pold, i), Get(dr, i), Get(pr, i), Get(cr, i));
+            Set(p, i, Get(pold, i) - (fl + fr + Get(udiff, i)) / (fld + frd));
+            change = 2.0 * abs((Get(*p, i) - Get(pold, i)) / (Get(*p, i) + Get(pold, i)));
 
             if (change <= Get(tolpre, i))
             {
