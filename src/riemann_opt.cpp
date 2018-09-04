@@ -65,13 +65,10 @@ using namespace std;
 __m512 z = SETZERO();
 
 /// \brief 1.
-__m512 v1 = SET1(1.0);
+__m512 one = SET1(1.0);
 
 /// \brief GAMA.
 __m512 gama = SET1(GAMA);
-
-/// \brief 1/GAMA.
-__m512 igama = SET1(1.0 / GAMA);
 
 /// \brief G1.
 __m512 g1 = SET1(G1);
@@ -93,9 +90,6 @@ __m512 g6 = SET1(G6);
 
 /// \brief G7.
 __m512 g7 = SET1(G7);
-
-/// \brief Constant for starpu.
-__m512 tolpre = SET1(1.0e-6);
 
 /// \brief Get <c>i</c>-th element from vector.
 ///
@@ -165,18 +159,18 @@ static void guessp_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
                       __m512 dr, __m512 ur, __m512 pr, __m512 cr,
                       __m512 *pm)
 {
-    __m512 half = SET1(0.5);
-    __m512 quser = SET1(2.0);
-    __m512 cup, ppv, pmin, pmax, qmax, pq, um, ptl, ptr, gel, ger;
+    __m512 cup, ppv, pmin, pmax, qmax, pq, um, ptl, ptr, gel, ger, two, half;
     __mmask16 cond_pvrs, cond_ppv, ncond_ppv;
 
+    two = SET1(2.0);
+    half = SET1(0.5);
     cup = MUL(half, MUL(ADD(dl, dr), ADD(cl, cr)));
     ppv = MUL(half, ADD(ADD(pl, pr), MUL(cup, SUB(ul, ur))));
     ppv = MAX(ppv, z);
     pmin = MIN(pl, pr);
     pmax = MAX(pl, pr);
     qmax = DIV(pmax, pmin);
-    cond_pvrs = CMP(qmax, quser, _MM_CMPINT_LE)
+    cond_pvrs = CMP(qmax, two, _MM_CMPINT_LE)
                 && CMP(pmin, ppv, _MM_CMPINT_LE)
                 && CMP(ppv, pmax, _MM_CMPINT_LE);
     *pm = _mm512_mask_mov_ps(*pm, cond_pvrs, ppv);
@@ -190,11 +184,11 @@ static void guessp_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
         um = _mm512_mask_div_ps(z, cond_ppv,
                                 ADD(ADD(MUL(pq, _mm512_mask_div_ps(z, cond_ppv, ul, cl)),
                                         _mm512_mask_div_ps(z, cond_ppv, ur, cr)),
-                                    MUL(g4, SUB(pq, v1))),
+                                    MUL(g4, SUB(pq, one))),
                                 ADD(_mm512_mask_div_ps(z, cond_ppv, pq, cl),
-                                    _mm512_mask_div_ps(z, cond_ppv, v1, cr)));
-        ptl = ADD(v1, MUL(g7, _mm512_mask_div_ps(z, cond_ppv, SUB(ul, um), cl)));
-        ptr = ADD(v1, MUL(g7, _mm512_mask_div_ps(z, cond_ppv, SUB(um, ur), cr)));
+                                    _mm512_mask_div_ps(z, cond_ppv, one, cr)));
+        ptl = ADD(one, MUL(g7, _mm512_mask_div_ps(z, cond_ppv, SUB(ul, um), cl)));
+        ptr = ADD(one, MUL(g7, _mm512_mask_div_ps(z, cond_ppv, SUB(um, ur), cr)));
         *pm = _mm512_mask_mul_ps(*pm, cond_ppv, half,
                                  ADD(_mm512_mask_pow_ps(z, cond_ppv, MUL(pl, ptl), g3),
                                      _mm512_mask_pow_ps(z, cond_ppv, MUL(pr, ptr), g3)));
@@ -240,9 +234,9 @@ static void prefun_16(__m512 *f, __m512 *fd, __m512 p,
     {
         __m512 pratio = _mm512_mask_div_ps(z, cond, p, pk);
         *f = _mm512_mask_mul_ps(*f, cond, MUL(g4, ck),
-                                SUB(_mm512_mask_pow_ps(z, cond, pratio, g1), v1));
+                                SUB(_mm512_mask_pow_ps(z, cond, pratio, g1), one));
         *fd = _mm512_mask_mul_ps(*fd, cond,
-                                 _mm512_mask_div_ps(z, cond, v1, MUL(dk, ck)),
+                                 _mm512_mask_div_ps(z, cond, one, MUL(dk, ck)),
                                  _mm512_mask_pow_ps(z, cond, pratio, SUB(z, g2)));
     }
 
@@ -254,7 +248,7 @@ static void prefun_16(__m512 *f, __m512 *fd, __m512 p,
                                          _mm512_mask_div_ps(z, ncond, ak, ADD(bk, p)));
         *f = _mm512_mask_mul_ps(*f, ncond, SUB(p, pk), qrt);
         *fd = _mm512_mask_mul_ps(*fd, ncond, qrt,
-                                 SUB(v1, MUL(SET1(0.5),
+                                 SUB(one, MUL(SET1(0.5),
                                              _mm512_mask_div_ps(z, ncond,
                                                                 SUB(p, pk),
                                                                 ADD(bk, p)))));
@@ -280,12 +274,15 @@ static void starpu_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
                       __m512 dr, __m512 ur, __m512 pr, __m512 cr,
                       __m512 *p, __m512 *u)
 {
-    __m512 pold, change, fl, fld, fr, frd;
+    __m512 pold, change, fl, fld, fr, frd, two, tolpre;
     __m512 udiff = SUB(ur, ul);
     __mmask16 cond_break, cond_neg;
     __mmask16 m = 0xFFFF;
     const int nriter = 20;
     int iter = 1;
+
+    two = SET1(2.0);
+    tolpre = SET1(1.0e-6);
 
     guessp_16(dl, ul, pl, cl, dr, ur, pr, cr, &pold);
 
@@ -297,7 +294,7 @@ static void starpu_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
                                 _mm512_mask_div_ps(z, m,
                                                    ADD(ADD(fl, fr), udiff),
                                                    ADD(fld, frd)));
-        change = MUL(SET1(2.0),
+        change = MUL(two,
                      ABS(_mm512_mask_div_ps(z, m,
                                             SUB(*p, pold),
                                             ADD(*p, pold))));
@@ -368,8 +365,8 @@ static void sample_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
     cond_s = _mm512_mask_cmp_ps_mask(~cond_pm, s, z, _MM_CMPINT_LT);
 
     // Store.
-    *d = _mm512_mask_mov_ps(*d, cond_st, MUL(*d, POW(pms, igama)));
-    *d = _mm512_mask_mov_ps(*d, cond_s, MUL(*d, DIV(ADD(pms, g6), _mm512_fmadd_ps(pms, g6, v1))));
+    *d = _mm512_mask_mov_ps(*d, cond_st, MUL(*d, POW(pms, SET1(1.0 / GAMA))));
+    *d = _mm512_mask_mov_ps(*d, cond_s, MUL(*d, DIV(ADD(pms, g6), _mm512_fmadd_ps(pms, g6, one))));
     *u = _mm512_mask_mov_ps(*u, cond_st | cond_s, ums);
     *p = _mm512_mask_mov_ps(*p, cond_st | cond_s, pm);
 
