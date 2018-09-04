@@ -1,4 +1,4 @@
-/// \file
+/// file
 /// \brief Riemann solver.
 ///
 /// Exact Riemann solver for the Euler equations in one dimension
@@ -159,7 +159,7 @@ static void guessp_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
                       __m512 dr, __m512 ur, __m512 pr, __m512 cr,
                       __m512 *pm)
 {
-    __m512 cup, ppv, pmin, pmax, qmax, pq, um, ptl, ptr, gel, ger, two, half;
+    __m512 two, half, cup, ppv, pmin, pmax, qmax, pq, um, ptl, ptr, gel, ger;
     __mmask16 cond_pvrs, cond_ppv, ncond_ppv;
 
     two = SET1(2.0);
@@ -170,13 +170,18 @@ static void guessp_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
     pmin = MIN(pl, pr);
     pmax = MAX(pl, pr);
     qmax = DIV(pmax, pmin);
+
+    // Conditions.
     cond_pvrs = CMP(qmax, two, _MM_CMPINT_LE)
                 && CMP(pmin, ppv, _MM_CMPINT_LE)
                 && CMP(ppv, pmax, _MM_CMPINT_LE);
-    *pm = _mm512_mask_mov_ps(*pm, cond_pvrs, ppv);
     cond_ppv = _mm512_mask_cmp_ps_mask(~cond_pvrs, ppv, pmin, _MM_CMPINT_LT);
     ncond_ppv = ~cond_pvrs & ~cond_ppv;
 
+    // The first branch.
+    *pm = _mm512_mask_mov_ps(*pm, cond_pvrs, ppv);
+
+    // The second branch.
     if (cond_ppv != 0x0)
     {
         pq = _mm512_mask_pow_ps(z, cond_ppv,
@@ -194,6 +199,7 @@ static void guessp_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
                                      _mm512_mask_pow_ps(z, cond_ppv, MUL(pr, ptr), g3)));
     }
 
+    // The third branch.
     if (ncond_ppv != 0x0)
     {
         gel = _mm512_mask_sqrt_ps(z, ncond_ppv,
@@ -227,12 +233,17 @@ static void prefun_16(__m512 *f, __m512 *fd, __m512 p,
                       __m512 dk, __m512 pk, __m512 ck,
                       __mmask16 m)
 {
-    __mmask16 cond = _mm512_mask_cmp_ps_mask(m, p, pk, _MM_CMPINT_LE);
-    __mmask16 ncond = m & ~cond;
+    __m512 pratio, ak, bk, qrt;
+    __mmask16 cond, ncond;
 
+    // Conditions.
+    cond = _mm512_mask_cmp_ps_mask(m, p, pk, _MM_CMPINT_LE);
+    ncond = m & ~cond;
+
+    // The first branch.
     if (cond != 0x0)
     {
-        __m512 pratio = _mm512_mask_div_ps(z, cond, p, pk);
+        pratio = _mm512_mask_div_ps(z, cond, p, pk);
         *f = _mm512_mask_mul_ps(*f, cond, MUL(g4, ck),
                                 SUB(_mm512_mask_pow_ps(z, cond, pratio, g1), one));
         *fd = _mm512_mask_mul_ps(*fd, cond,
@@ -240,18 +251,19 @@ static void prefun_16(__m512 *f, __m512 *fd, __m512 p,
                                  _mm512_mask_pow_ps(z, cond, pratio, SUB(z, g2)));
     }
 
+    // The second branch.
     if (ncond != 0x0)
     {
-        __m512 ak = _mm512_mask_div_ps(z, ncond, g5, dk);
-        __m512 bk = MUL(g6, pk);
-        __m512 qrt = _mm512_mask_sqrt_ps(z, ncond,
-                                         _mm512_mask_div_ps(z, ncond, ak, ADD(bk, p)));
+        ak = _mm512_mask_div_ps(z, ncond, g5, dk);
+        bk = MUL(g6, pk);
+        qrt = _mm512_mask_sqrt_ps(z, ncond,
+                                  _mm512_mask_div_ps(z, ncond, ak, ADD(bk, p)));
         *f = _mm512_mask_mul_ps(*f, ncond, SUB(p, pk), qrt);
         *fd = _mm512_mask_mul_ps(*fd, ncond, qrt,
                                  SUB(one, MUL(SET1(0.5),
-                                             _mm512_mask_div_ps(z, ncond,
-                                                                SUB(p, pk),
-                                                                ADD(bk, p)))));
+                                              _mm512_mask_div_ps(z, ncond,
+                                                                 SUB(p, pk),
+                                                                 ADD(bk, p)))));
     }
 }
 
@@ -274,17 +286,19 @@ static void starpu_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
                       __m512 dr, __m512 ur, __m512 pr, __m512 cr,
                       __m512 *p, __m512 *u)
 {
-    __m512 pold, change, fl, fld, fr, frd, two, tolpre;
-    __m512 udiff = SUB(ur, ul);
-    __mmask16 cond_break, cond_neg;
-    __mmask16 m = 0xFFFF;
+    __m512 two, tolpre, udiff, pold, fl, fld, fr, frd, change;
+    __mmask16 cond_break, cond_neg, m;
     const int nriter = 20;
     int iter = 1;
 
     two = SET1(2.0);
     tolpre = SET1(1.0e-6);
+    udiff = SUB(ur, ul);
 
     guessp_16(dl, ul, pl, cl, dr, ur, pr, cr, &pold);
+
+    // Start with full mask.
+    m = 0xFFFF;
 
     for (; (iter <= nriter) && (m != 0x0); iter++)
     {
@@ -399,12 +413,14 @@ static void riemann_16(__m512 dl, __m512 ul, __m512 pl,
                        __m512 dr, __m512 ur, __m512 pr,
                        __m512 *d, __m512 *u, __m512 *p)
 {
-    __m512 cl = SQRT(DIV(MUL(gama, pl), dl));
-    __m512 cr = SQRT(DIV(MUL(gama, pr), dr));
-    __m512 pm, um;
-    __mmask16 vacuum_mask = CMP(MUL(g4, ADD(cl, cr)),
-                                SUB(ur, ul),
-                                _MM_CMPINT_LE);
+    __m512 cl, cr, pm, um;
+    __mmask16 vacuum_mask;
+
+    cl = SQRT(DIV(MUL(gama, pl), dl));
+    cr = SQRT(DIV(MUL(gama, pr), dr));
+    vacuum_mask = CMP(MUL(g4, ADD(cl, cr)),
+                      SUB(ur, ul),
+                      _MM_CMPINT_LE);
 
     // Vacuum check.
     if (vacuum_mask != 0x0)
