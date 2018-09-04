@@ -233,7 +233,7 @@ static void prefun_16(__m512 *f, __m512 *fd, __m512 p,
                       __m512 dk, __m512 pk, __m512 ck,
                       __mmask16 m)
 {
-    __m512 pratio, ak, bk, qrt;
+    __m512 pratio, ak, bkp, ppk, qrt;
     __mmask16 cond, ncond;
 
     // Conditions.
@@ -255,15 +255,14 @@ static void prefun_16(__m512 *f, __m512 *fd, __m512 p,
     if (ncond != 0x0)
     {
         ak = _mm512_mask_div_ps(z, ncond, g5, dk);
-        bk = MUL(g6, pk);
+        bkp = ADD(MUL(g6, pk), p);
+        ppk = SUB(p, pk);
         qrt = _mm512_mask_sqrt_ps(z, ncond,
-                                  _mm512_mask_div_ps(z, ncond, ak, ADD(bk, p)));
-        *f = _mm512_mask_mul_ps(*f, ncond, SUB(p, pk), qrt);
+                                  _mm512_mask_div_ps(z, ncond, ak, bkp));
+        *f = _mm512_mask_mul_ps(*f, ncond, ppk, qrt);
         *fd = _mm512_mask_mul_ps(*fd, ncond, qrt,
                                  SUB(one, MUL(SET1(0.5),
-                                              _mm512_mask_div_ps(z, ncond,
-                                                                 SUB(p, pk),
-                                                                 ADD(bk, p)))));
+                                              _mm512_mask_div_ps(z, ncond, ppk, bkp))));
     }
 }
 
