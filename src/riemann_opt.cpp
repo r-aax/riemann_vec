@@ -168,7 +168,7 @@ static void guessp_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
     two = SET1(2.0);
     half = SET1(0.5);
     cup = MUL(SET1(0.25), MUL(ADD(dl, dr), ADD(cl, cr)));
-    ppv = MUL(half, ADD(ADD(pl, pr), MUL(cup, SUB(ul, ur))));
+    ppv = MUL(half, FMADD(SUB(ul, ur), cup, ADD(pl, pr)));
     ppv = MAX(ppv, z);
     pmin = MIN(pl, pr);
     pmax = MAX(pl, pr);
@@ -203,16 +203,10 @@ static void guessp_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
     // The third branch.
     if (ncond_ppv != 0x0)
     {
-        gel = _mm512_mask_sqrt_ps(z, ncond_ppv,
-                                  _mm512_mask_div_ps(z, ncond_ppv,
-                                                     _mm512_mask_div_ps(z, ncond_ppv, g5, dl),
-                                                     FMADD(g6, pl, ppv)));
-        ger = _mm512_mask_sqrt_ps(z, ncond_ppv,
-                                  _mm512_mask_div_ps(z, ncond_ppv,
-                                                     _mm512_mask_div_ps(z, ncond_ppv, g5, dr),
-                                                     FMADD(g6, pr, ppv)));
+        gel = SQRT(_mm512_mask_div_ps(z, ncond_ppv, g5, MUL(FMADD(g6, pl, ppv), dl)));
+        ger = SQRT(_mm512_mask_div_ps(z, ncond_ppv, g5, MUL(FMADD(g6, pr, ppv), dr)));
         *pm = _mm512_mask_div_ps(*pm, ncond_ppv,
-                                 SUB(ADD(MUL(gel, pl), MUL(ger, pr)), SUB(ur, ul)),
+                                 FMADD(gel, pl, FMADD(ger, pr, SUB(ul, ur))),
                                  ADD(gel, ger));
     }
 }
