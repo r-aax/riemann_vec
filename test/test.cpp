@@ -28,7 +28,7 @@ using namespace std;
 ///
 /// 0 - small test mode
 /// 1 - big test mode
-#define TEST_MODE 0
+#define TEST_MODE 1
 
 /// \brief Test cases in big mode.
 #define TEST_CASES_BIG 419996
@@ -41,6 +41,11 @@ using namespace std;
 #else
 #define TEST_CASES TEST_CASES_BIG
 #endif
+
+/// \brief Array length.
+///
+/// \param A - array
+#define ARR_LEN(A) (sizeof(A) / sizeof(A[0]))
 
 /// \brief Test data <c>dl</c>.
 ALIGN_64 float dls[] =
@@ -159,15 +164,12 @@ ALIGN_64 float us[TEST_CASES];
 /// \brief Calculated result <c>p</c>.
 ALIGN_64 float ps[TEST_CASES];
 
-/// \brief Test cases count.
-int test_cases = sizeof(dls) / sizeof(dls[0]);
-
 /// \brief Check function.
 void check()
 {
     float e = 1e-3;
 
-    for (int i = 0; i < test_cases; i++)
+    for (int i = 0; i < TEST_CASES; i++)
     {
         float diff_d = abs(ds[i] - ds_orig[i]);
         float diff_u = abs(us[i] - us_orig[i]);
@@ -187,7 +189,7 @@ void check()
 /// \brief Clean result data.
 void clean()
 {
-    for (int i = 0; i < test_cases; i++)
+    for (int i = 0; i < TEST_CASES; i++)
     {
         ds[i] = 0.0;
         us[i] = 0.0;
@@ -216,7 +218,7 @@ double run(void (*solver)(int,
     double t_start = omp_get_wtime();
     for (int i = 0; i < INNER_REPEATS; i++)
     {
-        solver(test_cases, dls, uls, pls, drs, urs, prs, ds, us, ps);
+        solver(TEST_CASES, dls, uls, pls, drs, urs, prs, ds, us, ps);
     }
     double t_end = omp_get_wtime();
     check();
@@ -253,23 +255,25 @@ int main()
 {
     double times[REPEATS];
     double times_opt[REPEATS];
+    int dls_len = ARR_LEN(dls);
+    int drs_len = ARR_LEN(drs);
+    int ds_orig_len = ARR_LEN(ds_orig);
+    int uls_len = ARR_LEN(uls);
+    int urs_len = ARR_LEN(urs);
+    int us_orig_len = ARR_LEN(us_orig);
+    int pls_len = ARR_LEN(pls);
+    int prs_len = ARR_LEN(prs);
+    int ps_orig_len = ARR_LEN(ps_orig);
 
-    if (!((sizeof(dls) == sizeof(uls)) && (sizeof(uls) == sizeof(pls))
-          && (sizeof(pls) == sizeof(drs)) && (sizeof(drs) == sizeof(urs))
-          && (sizeof(urs) == sizeof(prs)) && (sizeof(prs) == sizeof(ds_orig))
-          && (sizeof(ds_orig) == sizeof(us_orig)) && (sizeof(us_orig) == sizeof(ps_orig))))
+    // Check if data elements count is enough for run.
+    if ((TEST_CASES > dls_len) || (TEST_CASES > drs_len) || (TEST_CASES > ds_orig_len)
+        || (TEST_CASES > uls_len) || (TEST_CASES > urs_len) || (TEST_CASES > us_orig_len)
+        || (TEST_CASES > pls_len) || (TEST_CASES > prs_len) || (TEST_CASES > ps_orig_len))
     {
-        cout << "error : test data corrupted" << endl;
-        cout << sizeof(dls) << ", " << sizeof(uls) << ", " << sizeof(pls) << endl;
-        cout << sizeof(drs) << ", " << sizeof(urs) << ", " << sizeof(prs) << endl;
-        cout << sizeof(ds_orig) << ", " << sizeof(us_orig) << ", " << sizeof(ps_orig) << endl;
-        exit(1);
-    }
-
-    // We use statis allocation and test cases check.
-    if ((test_cases != TEST_CASES_BIG) && (test_cases != TEST_CASES_SMALL))
-    {
-        cout << "error : wrong test cases count (" << test_cases << " > " << TEST_CASES << ")" << endl;
+        cout << "error : not enough data for run : TEST_CASES = " << TEST_CASES
+             << ", data = { " << dls_len << ", " << drs_len << ", " << ds_orig_len
+             << ", " << uls_len << ", " << urs_len << ", " << us_orig_len
+             << ", " << pls_len << ", " << prs_len << ", " << ps_orig_len << " }" << endl;
         exit(1);
     }
 
@@ -297,7 +301,7 @@ int main()
     }
 #endif
 
-    cout << "test begin : " << test_cases << " test cases" << endl;
+    cout << "test begin : " << TEST_CASES << " test cases" << endl;
 
     for (int i = 0; i < REPEATS; i++)
     {

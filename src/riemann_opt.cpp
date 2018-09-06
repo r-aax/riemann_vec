@@ -61,6 +61,9 @@ using namespace std;
 /// \brief Short name for set1 intrinsic.
 #define SET1(v) _mm512_set1_ps(v)
 
+/// \brief Short name for fmadd intrinsic.
+#define FMADD(va, vb, vc) _mm512_fmadd_ps(va, vb, vc)
+
 /// \brief Zero.
 __m512 z = SETZERO();
 
@@ -159,7 +162,7 @@ static void guessp_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
                       __m512 dr, __m512 ur, __m512 pr, __m512 cr,
                       __m512 *pm)
 {
-    __m512 two, half, cup, ppv, pmin, pmax, qmax, pq, um, ptl, ptr, gel, ger;
+    __m512 two, half, cup, ppv, pmin, pmax, qmax, pq, um, ptl, ptr, gel, ger, pqcr;
     __mmask16 cond_pvrs, cond_ppv, ncond_ppv;
 
     two = SET1(2.0);
@@ -186,14 +189,12 @@ static void guessp_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
     {
         pq = _mm512_mask_pow_ps(z, cond_ppv,
                                 _mm512_mask_div_ps(z, cond_ppv, pl, pr), g1);
+        pqcr = MUL(pq, cr);
         um = _mm512_mask_div_ps(z, cond_ppv,
-                                ADD(ADD(MUL(pq, _mm512_mask_div_ps(z, cond_ppv, ul, cl)),
-                                        _mm512_mask_div_ps(z, cond_ppv, ur, cr)),
-                                    MUL(g4, SUB(pq, one))),
-                                ADD(_mm512_mask_div_ps(z, cond_ppv, pq, cl),
-                                    _mm512_mask_div_ps(z, cond_ppv, one, cr)));
-        ptl = ADD(one, MUL(g7, _mm512_mask_div_ps(z, cond_ppv, SUB(ul, um), cl)));
-        ptr = ADD(one, MUL(g7, _mm512_mask_div_ps(z, cond_ppv, SUB(um, ur), cr)));
+                                FMADD(FMADD(SUB(pqcr, cr), g4, ur), cl, MUL(pqcr, ul)),
+                                ADD(pqcr, cl));
+        ptl = FMADD(_mm512_mask_div_ps(z, cond_ppv, SUB(ul, um), cl), g7, one);
+        ptr = FMADD(_mm512_mask_div_ps(z, cond_ppv, SUB(um, ur), cr), g7, one);
         *pm = _mm512_mask_mul_ps(*pm, cond_ppv, half,
                                  ADD(_mm512_mask_pow_ps(z, cond_ppv, MUL(pl, ptl), g3),
                                      _mm512_mask_pow_ps(z, cond_ppv, MUL(pr, ptr), g3)));
@@ -205,11 +206,11 @@ static void guessp_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
         gel = _mm512_mask_sqrt_ps(z, ncond_ppv,
                                   _mm512_mask_div_ps(z, ncond_ppv,
                                                      _mm512_mask_div_ps(z, ncond_ppv, g5, dl),
-                                                     ADD(MUL(g6, pl), ppv)));
+                                                     FMADD(g6, pl, ppv)));
         ger = _mm512_mask_sqrt_ps(z, ncond_ppv,
                                   _mm512_mask_div_ps(z, ncond_ppv,
                                                      _mm512_mask_div_ps(z, ncond_ppv, g5, dr),
-                                                     ADD(MUL(g6, pr), ppv)));
+                                                     FMADD(g6, pr, ppv)));
         *pm = _mm512_mask_div_ps(*pm, ncond_ppv,
                                  SUB(ADD(MUL(gel, pl), MUL(ger, pr)), SUB(ur, ul)),
                                  ADD(gel, ger));
