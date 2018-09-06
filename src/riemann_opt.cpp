@@ -167,7 +167,7 @@ static void guessp_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
 
     two = SET1(2.0);
     half = SET1(0.5);
-    cup = MUL(half, MUL(ADD(dl, dr), ADD(cl, cr)));
+    cup = MUL(SET1(0.25), MUL(ADD(dl, dr), ADD(cl, cr)));
     ppv = MUL(half, ADD(ADD(pl, pr), MUL(cup, SUB(ul, ur))));
     ppv = MAX(ppv, z);
     pmin = MIN(pl, pr);
