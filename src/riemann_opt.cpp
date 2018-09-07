@@ -241,9 +241,9 @@ static void prefun_16(__m512 *f, __m512 *fd, __m512 p,
         pratio = _mm512_mask_div_ps(z, cond, p, pk);
         *f = _mm512_mask_mul_ps(*f, cond, MUL(g4, ck),
                                 SUB(_mm512_mask_pow_ps(z, cond, pratio, g1), one));
-        *fd = _mm512_mask_mul_ps(*fd, cond,
-                                 _mm512_mask_div_ps(z, cond, one, MUL(dk, ck)),
-                                 _mm512_mask_pow_ps(z, cond, pratio, SUB(z, g2)));
+        *fd = _mm512_mask_div_ps(*fd, cond,
+                                 _mm512_mask_pow_ps(z, cond, pratio, SUB(z, g2)),
+                                 MUL(dk, ck));
     }
 
     // The second branch.
@@ -256,8 +256,10 @@ static void prefun_16(__m512 *f, __m512 *fd, __m512 p,
                                   _mm512_mask_div_ps(z, ncond, ak, bkp));
         *f = _mm512_mask_mul_ps(*f, ncond, ppk, qrt);
         *fd = _mm512_mask_mul_ps(*fd, ncond, qrt,
-                                 SUB(one, MUL(SET1(0.5),
-                                              _mm512_mask_div_ps(z, ncond, ppk, bkp))));
+                                 _mm512_fnmadd_ps(_mm512_mask_div_ps(z, ncond, ppk, bkp),
+                                                  SET1(0.5), one));
+//                                 SUB(one, MUL(SET1(0.5),
+//                                              _mm512_mask_div_ps(z, ncond, ppk, bkp))));
     }
 }
 
