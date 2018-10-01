@@ -141,6 +141,27 @@ static void Print(__m512 v)
     printf("]\n");
 }
 
+static int cnt(int mask)
+{
+    int c = 0;
+
+    for (int i = 0; i < 16; i++)
+    {
+        if ((mask & (1 << i)) != 0x0)
+        {
+            c++;
+        }
+    }
+
+    return c;
+}
+
+//static int guessp_1_hist[16] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+//static int guessp_2_hist[16] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+//static int prefun_1_hist[16] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+//static int prefun_2_hist[16] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+//static int sample_hist[16] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+
 /// \brief 
 ///
 /// Purpose is to provide a guessed value for pressure
@@ -185,6 +206,7 @@ static void guessp_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
     *pm = _mm512_mask_mov_ps(*pm, cond_pvrs, ppv);
 
     // The second branch.
+//    guessp_1_hist[cnt(cond_ppv)]++;
     if (cond_ppv != 0x0)
     {
         pq = _mm512_mask_pow_ps(z, cond_ppv,
@@ -201,6 +223,7 @@ static void guessp_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
     }
 
     // The third branch.
+//    guessp_2_hist[cnt(ncond_ppv)]++;
     if (ncond_ppv != 0x0)
     {
         gel = SQRT(_mm512_mask_div_ps(z, ncond_ppv, g5, MUL(FMADD(g6, pl, ppv), dl)));
@@ -236,6 +259,7 @@ static void prefun_16(__m512 *f, __m512 *fd, __m512 p,
     ncond = m & ~cond;
 
     // The first branch.
+//    prefun_1_hist[cnt(cond)]++;
     if (cond != 0x0)
     {
         pratio = _mm512_mask_div_ps(z, cond, p, pk);
@@ -247,6 +271,7 @@ static void prefun_16(__m512 *f, __m512 *fd, __m512 p,
     }
 
     // The second branch.
+//    prefun_2_hist[cnt(ncond)]++;
     if (ncond != 0x0)
     {
         ak = _mm512_mask_div_ps(z, ncond, g5, dk);
@@ -378,7 +403,8 @@ static void sample_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
 
     // Low prob - ignnore it.
     cond_sh_st = cond_sh & ~cond_st;
-    if (cond_sh_st)
+//    sample_hist[cnt(cond_sh_st)]++;
+    if (cond_sh_st != 0x0)
     {
         *u = _mm512_mask_mov_ps(*u, cond_sh_st, MUL(g5, FMADD(g7, *u, c)));
         uc = DIV(*u, c);
@@ -426,6 +452,23 @@ static void riemann_16(__m512 dl, __m512 ul, __m512 pl,
 }
 
 #endif
+
+void print_hist(int *m)
+{
+    int sum = 0;
+
+    for (int i = 0; i < 16; i++)
+    {
+        sum += m[i];
+    }
+
+    printf("Mask: ");
+    for (int i = 0; i < 16; i++)
+    {
+        printf(" %f ", ((float)m[i] / (float)sum) * 100.0);
+    }
+    printf("\n");
+}
 
 /// \brief Riemann solver.
 ///
@@ -481,6 +524,12 @@ void riemann_opt(int c,
             dl + c_base, ul + c_base, pl + c_base,
             dr + c_base, ur + c_base, pr + c_base,
             d + c_base, u + c_base, p + c_base);
+
+//    print_hist(guessp_1_hist);
+//    print_hist(guessp_2_hist);
+//    print_hist(prefun_1_hist);
+//    print_hist(prefun_2_hist);
+//    print_hist(sample_hist);
 
 #endif
 

@@ -22,7 +22,7 @@ using namespace std;
 #endif
 
 /// \brief Repeats count.
-#define REPEATS 10
+#define REPEATS 1
 
 /// brief Test mode.
 ///
@@ -212,7 +212,7 @@ double run(void (*solver)(int,
 {
 
 /// \brief Inner repeats count.
-#define INNER_REPEATS 50
+#define INNER_REPEATS 1
 
     clean();
     double t_start = omp_get_wtime();
