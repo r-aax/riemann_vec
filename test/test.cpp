@@ -12,6 +12,7 @@
 #include <string>
 #include <iomanip>
 #include <omp.h>
+
 using namespace std;
 
 /// \brief Alignment of 64 bytes.
@@ -165,7 +166,8 @@ ALIGN_64 float us[TEST_CASES];
 ALIGN_64 float ps[TEST_CASES];
 
 /// \brief Check function.
-void check()
+void
+check()
 {
     float e = 1e-3;
 
@@ -187,7 +189,8 @@ void check()
 }
 
 /// \brief Clean result data.
-void clean()
+void
+clean()
 {
     for (int i = 0; i < TEST_CASES; i++)
     {
@@ -204,11 +207,18 @@ void clean()
 ///
 /// \return
 /// Execution time.
-double run(void (*solver)(int,
-                          float *, float *, float *,
-                          float *, float *, float *,
-                          float *, float *, float *),
-           string str)
+double
+run(void (*solver)(int,
+                   float *,
+                   float *,
+                   float *,
+                   float *,
+                   float *,
+                   float *,
+                   float *,
+                   float *,
+                   float *),
+    string str)
 {
 
 /// \brief Inner repeats count.
@@ -216,10 +226,12 @@ double run(void (*solver)(int,
 
     clean();
     double t_start = omp_get_wtime();
+
     for (int i = 0; i < INNER_REPEATS; i++)
     {
         solver(TEST_CASES, dls, uls, pls, drs, urs, prs, ds, us, ps);
     }
+
     double t_end = omp_get_wtime();
     check();
     double t_len = t_end - t_start;
@@ -235,7 +247,9 @@ double run(void (*solver)(int,
 ///
 /// \return
 /// Min value.
-double array_min(double *d, int c)
+double
+array_min(double *d,
+          int c)
 {
     double m = d[0];
 
@@ -251,7 +265,8 @@ double array_min(double *d, int c)
 }
 
 /// \brief Test.
-int main()
+int
+main()
 {
     double times[REPEATS];
     double times_opt[REPEATS];
@@ -278,6 +293,7 @@ int main()
     }
 
 #ifdef INTEL
+
     {
         // Check alignment.
         unsigned long dls_a = (unsigned long)&dls[0], uls_a = (unsigned long)&uls[0], pls_a = (unsigned long)&pls[0],
@@ -299,6 +315,7 @@ int main()
             exit(1);
         }
     }
+
 #endif
 
     cout << "test begin : " << TEST_CASES << " test cases" << endl;

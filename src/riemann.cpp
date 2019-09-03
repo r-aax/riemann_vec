@@ -13,9 +13,10 @@
 #include <sstream>
 #include <string>
 #include "riemann.h"
+
 using namespace std;
 
-/// \brief 
+/// \brief Calculate start guessed pressure value.
 ///
 /// Purpose is to provide a guessed value for pressure
 /// pm in the Star Region. The choice is made
@@ -32,9 +33,16 @@ using namespace std;
 /// \param[in] pr - right side pressure
 /// \param[in] cr - right side sound speed
 /// \param[out] pm - pressure
-static void guessp(float dl, float ul, float pl, float cl,
-                   float dr, float ur, float pr, float cr,
-                   float &pm)
+static void
+guessp(float dl,
+       float ul,
+       float pl,
+       float cl,
+       float dr,
+       float ur,
+       float pr,
+       float cr,
+       float &pm)
 {
     float cup, gel, ger, pmax, pmin, ppv, pq, ptl, ptr, qmax, quser, um;
 
@@ -74,15 +82,25 @@ static void guessp(float dl, float ul, float pl, float cl,
     }
 }
 
-/// \brief
+/// \brief Calculate pressures and derivatives for left and right sides.
 ///
 /// Purpose is to evaluate the pressure functions
 /// fl and fr in exact Riemann solver
 /// and their first derivatives.
 ///
-/// TODO:
-static void prefun(float &f, float &fd, float &p,
-                   float &dk, float &pk, float &ck)
+/// \param[out] f - pressure function
+/// \param[out] fd - pressure derivative
+/// \param[in] p - old pressure
+/// \param[in] dk - density
+/// \param[in] pk - pressure
+/// \param[in] ck - sound speed
+static void
+prefun(float &f,
+       float &fd,
+       float &p,
+       float &dk,
+       float &pk,
+       float &ck)
 {
     float ak, bk, pratio, qrt;
 
@@ -104,15 +122,32 @@ static void prefun(float &f, float &fd, float &p,
     }
 }
 
-/// \brief
+/// \brief Pressure and speed calculation in star region.
 ///
 /// Purpose is to compute the solution for pressure
 /// and velocity in the Star Region.
 ///
-/// TODO:
-static void starpu(float dl, float ul, float pl, float cl,
-                   float dr, float ur, float pr, float cr,
-                   float &p, float &u)
+/// \param[in] dl - left side density
+/// \param[in] ul - left side speed
+/// \param[in] pl - left side pressure
+/// \param[in] cl - left side sound speed
+/// \param[in] dr - right side density
+/// \param[in] ur - right side speed
+/// \param[in] pr - right side pressure
+/// \param[in] cr - right side sound speed
+/// \param[out] p - pressure in star region
+/// \param[out] u - speed in star region
+static void
+starpu(float dl,
+       float ul,
+       float pl,
+       float cl,
+       float dr,
+       float ur,
+       float pr,
+       float cr,
+       float &p,
+       float &u)
 {
     const int nriter = 20;
     const float tolpre = 1.0e-6;
@@ -156,7 +191,7 @@ static void starpu(float dl, float ul, float pl, float cl,
     u = 0.5 * (ul + ur + fr - fl);
 }
 
-/// \brief
+/// \brief Final analyze of the configuration.
 ///
 /// Purpose is to sample the solution throughout the wave
 /// pattern. Pressure pm and velocity um in the
@@ -164,13 +199,35 @@ static void starpu(float dl, float ul, float pl, float cl,
 /// in terms of the 'speed' s = x/t. Sampled
 /// values are d, u, p.
 ///
-/// TODO:
-static void sample(float dl, float ul, float pl, float cl,
-                   float dr, float ur, float pr, float cr,
-                   const float pm, const float um,
-                   float &d, float &u, float &p)
+/// \param[in] dl - left side density
+/// \param[in] ul - left side speed
+/// \param[in] pl - left side pressure
+/// \param[in] cl - left side sound speed
+/// \param[in] dr - right side density
+/// \param[in] ur - right side speed
+/// \param[in] pr - right side pressure
+/// \param[in] cr - right side sound speed
+/// \param[in] pm - pressure in star region
+/// \param[in] um - speed in star region
+/// \param[out] d - density
+/// \param[out] u - speed
+/// \param[out] p - pressure
+static
+void sample(float dl,
+            float ul,
+            float pl,
+            float cl,
+            float dr,
+            float ur,
+            float pr,
+            float cr,
+            const float pm,
+            const float um,
+            float &d,
+            float &u,
+            float &p)
 {
-    float c, cml, cmr, pml, pmr, shl, shr, sl, sr, stl, str;    
+    float c, cml, cmr, pml, pmr, shl, shr, sl, sr, stl, str;
 
     if (0.0 <= um)
     {
@@ -302,9 +359,16 @@ static void sample(float dl, float ul, float pl, float cl,
 /// \param[out] d - result density reference
 /// \param[out] u - result velocity reference
 /// \param[out] p - result pressure reference
-void riemann(float dl, float ul, float pl,
-             float dr, float ur, float pr,
-             float &d, float &u, float &p)
+void
+riemann(float dl,
+        float ul,
+        float pl,
+        float dr,
+        float ur,
+        float pr,
+        float &d,
+        float &u,
+        float &p)
 {
     float pm, um, cl, cr;
 
@@ -338,10 +402,17 @@ void riemann(float dl, float ul, float pl,
 /// \param[out] d - result density reference
 /// \param[out] u - result velocity reference
 /// \param[out] p - result pressure reference
-void riemann(int c,
-             float *dl, float *ul, float *pl,
-             float *dr, float *ur, float *pr,
-             float *d, float *u, float *p)
+void
+riemann(int c,
+        float *dl,
+        float *ul,
+        float *pl,
+        float *dr,
+        float *ur,
+        float *pr,
+        float *d,
+        float *u,
+        float *p)
 {
     float d_, u_, p_;
 

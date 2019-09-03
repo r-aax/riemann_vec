@@ -1,8 +1,0 @@
-*.out
-*.gcov
-*.gcda
-*.gcno
-*.txt
-*.s
-*.optrpt
-result.txt

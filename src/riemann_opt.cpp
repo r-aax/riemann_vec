@@ -1,5 +1,5 @@
 /// file
-/// \brief Riemann solver.
+/// \brief Riemann solver (vectorized version).
 ///
 /// Exact Riemann solver for the Euler equations in one dimension
 /// Translated from the Fortran code er1pex.f and er1pex.ini
@@ -13,11 +13,15 @@
 #include <sstream>
 #include <string>
 #include "riemann.h"
+
 using namespace std;
 
 #ifdef INTEL
 
 #include <immintrin.h>
+
+/// \brief Fp32 vector length.
+#define FP16_VECTOR_SIZE 16
 
 /// \brief Short name for load intrinsic.
 #define LD(ADDR) _mm512_load_ps(ADDR)
@@ -26,43 +30,43 @@ using namespace std;
 #define ST(ADDR, VAL) _mm512_store_ps(ADDR, VAL)
 
 /// \brief Short name for add intrinsic.
-#define ADD(va, vb) _mm512_add_ps(va, vb)
+#define ADD(VA, VB) _mm512_add_ps(VA, VB)
 
 /// \brief Short name for mul intrinsic.
-#define MUL(va, vb) _mm512_mul_ps(va, vb)
+#define MUL(VA, VB) _mm512_mul_ps(VA, VB)
 
 /// \brief Short name for sub intrinsic.
-#define SUB(va, vb) _mm512_sub_ps(va, vb)
+#define SUB(VA, VB) _mm512_sub_ps(VA, VB)
 
 /// \brief Short name for div intrinsic.
-#define DIV(va, vb) _mm512_div_ps(va, vb)
+#define DIV(VA, VB) _mm512_div_ps(VA, VB)
 
 /// \brief Short name for pow intrinsic.
-#define POW(va, vb) _mm512_pow_ps(va, vb)
+#define POW(VA, VB) _mm512_pow_ps(VA, VB)
 
 /// \brief Short name for sqrt intrinsic.
-#define SQRT(va) _mm512_sqrt_ps(va)
+#define SQRT(V) _mm512_sqrt_ps(V)
 
 /// \brief Short name for abs intrinsic.
-#define ABS(v) _mm512_abs_ps(v)
+#define ABS(V) _mm512_abs_ps(V)
 
 /// \brief Short name for max intrinsic.
-#define MAX(va, vb) _mm512_max_ps(va, vb)
+#define MAX(VA, VB) _mm512_max_ps(VA, VB)
 
 /// \brief Short name for min intrinsic.
-#define MIN(va, vb) _mm512_min_ps(va, vb)
+#define MIN(VA, VB) _mm512_min_ps(VA, VB)
 
 /// \bries Short name for cmp.
-#define CMP(va, vb, cmp) _mm512_cmp_ps_mask(va, vb, cmp)
+#define CMP(VA, VB, CMP) _mm512_cmp_ps_mask(VA, VB, CMP)
 
 /// \brief Short name for setzero intrinsic.
 #define SETZERO() _mm512_setzero_ps()
 
 /// \brief Short name for set1 intrinsic.
-#define SET1(v) _mm512_set1_ps(v)
+#define SET1(V) _mm512_set1_ps(V)
 
 /// \brief Short name for fmadd intrinsic.
-#define FMADD(va, vb, vc) _mm512_fmadd_ps(va, vb, vc)
+#define FMADD(VA, VB, VC) _mm512_fmadd_ps(VA, VB, VC)
 
 /// \brief Zero.
 __m512 z = SETZERO();
@@ -73,25 +77,25 @@ __m512 one = SET1(1.0);
 /// \brief GAMA.
 __m512 gama = SET1(GAMA);
 
-/// \brief G1.
+/// \brief Gamma special value 1 vector.
 __m512 g1 = SET1(G1);
 
-/// \brief G2.
+/// \brief Gamma special value 2 vector.
 __m512 g2 = SET1(G2);
 
-/// \brief G3.
+/// \brief Gamma special value 3 vector.
 __m512 g3 = SET1(G3);
 
-/// \brief G4.
+/// \brief Gamma special value 4 vector.
 __m512 g4 = SET1(G4);
 
-/// \brief G5.
+/// \brief Gamma special value 5 vector.
 __m512 g5 = SET1(G5);
 
-/// \brief G6.
+/// \brief Gamma special value 6 vector.
 __m512 g6 = SET1(G6);
 
-/// \brief G7.
+/// \brief Gamma special value 7 vector.
 __m512 g7 = SET1(G7);
 
 /// \brief Get <c>i</c>-th element from vector.
@@ -101,9 +105,11 @@ __m512 g7 = SET1(G7);
 ///
 /// \return
 /// Element.
-static float Get(__m512 v, int i)
+static float
+Get(__m512 v,
+    int i)
 {
-    float arr[16];
+    float arr[FP16_VECTOR_SIZE];
 
     ST(&arr[0], v);
 
@@ -115,9 +121,12 @@ static float Get(__m512 v, int i)
 /// \param[in,out] v - vector
 /// \param[in] i - index
 /// \param[in] f - value
-static void Set(__m512 *v, int i, float f)
+static void
+Set(__m512 *v,
+    int i,
+    float f)
 {
-    float arr[16];
+    float arr[FP16_VECTOR_SIZE];
 
     ST(&arr[0], *v);
     arr[i] = f;
@@ -127,25 +136,35 @@ static void Set(__m512 *v, int i, float f)
 /// \brief Print.
 ///
 /// \param[in] v - vector
-static void Print(__m512 v)
+static void
+Print(__m512 v)
 {
-    float arr[16];
+    float arr[FP16_VECTOR_SIZE];
 
     ST(&arr[0], v);
 
     printf("[");
-    for (int i = 0; i < 16; i++)
+
+    for (int i = 0; i < FP16_VECTOR_SIZE; i++)
     {
         printf(" %f ", arr[i]);
     }
+
     printf("]\n");
 }
 
-static int cnt(int mask)
+/// \brief Count of '1' bits in mask.
+///
+/// \param[in] mask - mask
+///
+/// \return
+/// Count of '1' bits in mask.
+static int
+cnt(int mask)
 {
     int c = 0;
 
-    for (int i = 0; i < 16; i++)
+    for (int i = 0; i < FP16_VECTOR_SIZE; i++)
     {
         if ((mask & (1 << i)) != 0x0)
         {
@@ -156,13 +175,7 @@ static int cnt(int mask)
     return c;
 }
 
-//static int guessp_1_hist[16] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-//static int guessp_2_hist[16] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-//static int prefun_1_hist[16] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-//static int prefun_2_hist[16] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-//static int sample_hist[16] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-
-/// \brief 
+/// \brief Calculate start guessed pressure value.
 ///
 /// Purpose is to provide a guessed value for pressure
 /// pm in the Star Region. The choice is made
@@ -179,9 +192,16 @@ static int cnt(int mask)
 /// \param[in] pr - right side pressure
 /// \param[in] cr - right side sound speed
 /// \param[out] pm - pressure
-static void guessp_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
-                      __m512 dr, __m512 ur, __m512 pr, __m512 cr,
-                      __m512 *pm)
+static void
+guessp_16(__m512 dl,
+          __m512 ul,
+          __m512 pl,
+          __m512 cl,
+          __m512 dr,
+          __m512 ur,
+          __m512 pr,
+          __m512 cr,
+          __m512 *pm)
 {
     __m512 two, half, cup, ppv, pmin, pmax, qmax, pq, um, ptl, ptr, gel, ger, pqcr;
     __mmask16 cond_pvrs, cond_ppv, ncond_ppv;
@@ -197,8 +217,8 @@ static void guessp_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
 
     // Conditions.
     cond_pvrs = CMP(qmax, two, _MM_CMPINT_LE)
-                && CMP(pmin, ppv, _MM_CMPINT_LE)
-                && CMP(ppv, pmax, _MM_CMPINT_LE);
+                & CMP(pmin, ppv, _MM_CMPINT_LE)
+                & CMP(ppv, pmax, _MM_CMPINT_LE);
     cond_ppv = _mm512_mask_cmp_ps_mask(~cond_pvrs, ppv, pmin, _MM_CMPINT_LT);
     ncond_ppv = ~cond_pvrs & ~cond_ppv;
 
@@ -206,7 +226,6 @@ static void guessp_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
     *pm = _mm512_mask_mov_ps(*pm, cond_pvrs, ppv);
 
     // The second branch.
-//    guessp_1_hist[cnt(cond_ppv)]++;
     if (cond_ppv != 0x0)
     {
         pq = _mm512_mask_pow_ps(z, cond_ppv,
@@ -223,7 +242,6 @@ static void guessp_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
     }
 
     // The third branch.
-//    guessp_2_hist[cnt(ncond_ppv)]++;
     if (ncond_ppv != 0x0)
     {
         gel = SQRT(_mm512_mask_div_ps(z, ncond_ppv, g5, MUL(FMADD(g6, pl, ppv), dl)));
@@ -234,22 +252,27 @@ static void guessp_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
     }
 }
 
-/// \brief
+/// \brief Calculate pressures and derivatives for left and right sides.
 ///
 /// Purpose is to evaluate the pressure functions
 /// fl and fr in exact Riemann solver
 /// and their first derivatives.
 ///
-/// \param[in,out] f - ?
-/// \param[in,out] fd - ?
-/// \param[in] p - ?
-/// \param[in] dk - ?
-/// \param[in] pk - ?
-/// \param[in] ck - ?
+/// \param[out] f - pressure function
+/// \param[out] fd - pressure derivative
+/// \param[in] p - old pressure
+/// \param[in] dk - density
+/// \param[in] pk - pressure
+/// \param[in] ck - sound speed
 /// \param[in] m - mask for operations
-static void prefun_16(__m512 *f, __m512 *fd, __m512 p,
-                      __m512 dk, __m512 pk, __m512 ck,
-                      __mmask16 m)
+static void
+prefun_16(__m512 *f,
+          __m512 *fd,
+          __m512 p,
+          __m512 dk,
+          __m512 pk,
+          __m512 ck,
+          __mmask16 m)
 {
     __m512 pratio, ak, bkp, ppk, qrt;
     __mmask16 cond, ncond;
@@ -259,7 +282,6 @@ static void prefun_16(__m512 *f, __m512 *fd, __m512 p,
     ncond = m & ~cond;
 
     // The first branch.
-//    prefun_1_hist[cnt(cond)]++;
     if (cond != 0x0)
     {
         pratio = _mm512_mask_div_ps(z, cond, p, pk);
@@ -271,7 +293,6 @@ static void prefun_16(__m512 *f, __m512 *fd, __m512 p,
     }
 
     // The second branch.
-//    prefun_2_hist[cnt(ncond)]++;
     if (ncond != 0x0)
     {
         ak = _mm512_mask_div_ps(z, ncond, g5, dk);
@@ -286,7 +307,7 @@ static void prefun_16(__m512 *f, __m512 *fd, __m512 p,
     }
 }
 
-/// \brief
+/// \brief Pressure and speed calculation in star region.
 ///
 /// Purpose is to compute the solution for pressure
 /// and velocity in the Star Region.
@@ -301,9 +322,17 @@ static void prefun_16(__m512 *f, __m512 *fd, __m512 p,
 /// \param[in] cr - right side sound velocity
 /// \param[out] p - pressure in star region
 /// \param[out] u - velocity in star region
-static void starpu_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
-                      __m512 dr, __m512 ur, __m512 pr, __m512 cr,
-                      __m512 *p, __m512 *u)
+static void
+starpu_16(__m512 dl,
+          __m512 ul,
+          __m512 pl,
+          __m512 cl,
+          __m512 dr,
+          __m512 ur,
+          __m512 pr,
+          __m512 cr,
+          __m512 *p,
+          __m512 *u)
 {
     __m512 two, tolpre, tolpre2, udiff, pold, fl, fld, fr, frd, change;
     __mmask16 cond_break, cond_neg, m;
@@ -346,7 +375,7 @@ static void starpu_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
     *u = MUL(SET1(0.5), ADD(ADD(ul, ur), SUB(fr, fl)));
 }
 
-/// \brief
+/// \brief Final analyze of the configuration.
 ///
 /// Purpose is to sample the solution throughout the wave
 /// pattern. Pressure pm and velocit
@@ -365,10 +394,20 @@ static void starpu_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
 /// \param[out] d - result density
 /// \param[out] u - result velocity
 /// \param[out] p - result pressure
-static void sample_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
-                      __m512 dr, __m512 ur, __m512 pr, __m512 cr,
-                      __m512 pm, __m512 um,
-                      __m512 *d, __m512 *u, __m512 *p)
+static void
+sample_16(__m512 dl,
+          __m512 ul,
+          __m512 pl,
+          __m512 cl,
+          __m512 dr,
+          __m512 ur,
+          __m512 pr,
+          __m512 cr,
+          __m512 pm,
+          __m512 um,
+          __m512 *d,
+          __m512 *u,
+          __m512 *p)
 {
     __m512 c, ums, pms, sh, st, s, uc;
     __mmask16 cond_um, cond_pm, cond_sh, cond_st, cond_s, cond_sh_st;
@@ -403,7 +442,6 @@ static void sample_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
 
     // Low prob - ignnore it.
     cond_sh_st = cond_sh & ~cond_st;
-//    sample_hist[cnt(cond_sh_st)]++;
     if (cond_sh_st != 0x0)
     {
         *u = _mm512_mask_mov_ps(*u, cond_sh_st, MUL(g5, FMADD(g7, *u, c)));
@@ -427,9 +465,16 @@ static void sample_16(__m512 dl, __m512 ul, __m512 pl, __m512 cl,
 /// \param[out] d - result density reference
 /// \param[out] u - result velocity reference
 /// \param[out] p - result pressure reference
-static void riemann_16(__m512 dl, __m512 ul, __m512 pl,
-                       __m512 dr, __m512 ur, __m512 pr,
-                       __m512 *d, __m512 *u, __m512 *p)
+static void
+riemann_16(__m512 dl,
+           __m512 ul,
+           __m512 pl,
+           __m512 dr,
+           __m512 ur,
+           __m512 pr,
+           __m512 *d,
+           __m512 *u,
+           __m512 *p)
 {
     __m512 cl, cr, pm, um;
     __mmask16 vacuum_mask;
@@ -451,24 +496,7 @@ static void riemann_16(__m512 dl, __m512 ul, __m512 pl,
     sample_16(dl, ul, pl, cl, dr, ur, pr, cr, pm, um, d, u, p);
 }
 
-#endif
-
-void print_hist(int *m)
-{
-    int sum = 0;
-
-    for (int i = 0; i < 16; i++)
-    {
-        sum += m[i];
-    }
-
-    printf("Mask: ");
-    for (int i = 0; i < 16; i++)
-    {
-        printf(" %f ", ((float)m[i] / (float)sum) * 100.0);
-    }
-    printf("\n");
-}
+#endif // INTEL
 
 /// \brief Riemann solver.
 ///
@@ -482,10 +510,17 @@ void print_hist(int *m)
 /// \param[out] d - result density reference
 /// \param[out] u - result velocity reference
 /// \param[out] p - result pressure reference
-void riemann_opt(int c,
-                 float *dl, float *ul, float *pl,
-                 float *dr, float *ur, float *pr,
-                 float *d, float *u, float *p)
+void
+riemann_opt(int c,
+            float *dl,
+            float *ul,
+            float *pl,
+            float *dr,
+            float *ur,
+            float *pr,
+            float *d,
+            float *u,
+            float *p)
 {
 
 #ifndef INTEL
@@ -509,7 +544,7 @@ void riemann_opt(int c,
     int c_base = c - c_tail;
 
     // Main body.
-    for (int i = 0; i < c_base; i += 16)
+    for (int i = 0; i < c_base; i += FP16_VECTOR_SIZE)
     {
         riemann_16(LD(dl + i), LD(ul + i), LD(pl + i),
                    LD(dr + i), LD(ur + i), LD(pr + i),
@@ -525,12 +560,6 @@ void riemann_opt(int c,
             dr + c_base, ur + c_base, pr + c_base,
             d + c_base, u + c_base, p + c_base);
 
-//    print_hist(guessp_1_hist);
-//    print_hist(guessp_2_hist);
-//    print_hist(prefun_1_hist);
-//    print_hist(prefun_2_hist);
-//    print_hist(sample_hist);
-
-#endif
+#endif // INTEL
 
 }
