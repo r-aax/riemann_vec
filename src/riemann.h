@@ -4,6 +4,9 @@
 #ifndef RIEMANN_H
 #define RIEMANN_H
 
+/// \brief Fp32 vector length.
+#define FP16_VECTOR_SIZE 16
+
 /// \brief Gama value.
 #define GAMA 1.4
 
@@ -35,23 +38,58 @@
 // Prototypes.
 //
 
-// Single not optimized original version.
+// Not optimized version for 16x data.
 void
-riemann(float dl,
-        float ul,
-        float vl,
-        float wl,
-        float pl,
-        float dr,
-        float ur,
-        float vr,
-        float wr,
-        float pr,
-        float &d,
-        float &u,
-        float &v,
-        float &w,
-        float &p);
+riemann_16_s(float *dl,
+             float *ul,
+             float *vl,
+             float *wl,
+             float *pl,
+             float *dr,
+             float *ur,
+             float *vr,
+             float *wr,
+             float *pr,
+             float *d,
+             float *u,
+             float *v,
+             float *w,
+             float *p);
+
+// Riemann solver for multiple data.
+void
+riemann_n(int c,
+          float *dl,
+          float *ul,
+          float *vl,
+          float *wl,
+          float *pl,
+          float *dr,
+          float *ur,
+          float *vr,
+          float *wr,
+          float *pr,
+          float *d,
+          float *u,
+          float *v,
+          float *w,
+          float *p,
+          int nt,
+          void (*solver_16)(float *,
+                            float *,
+                            float *,
+                            float *,
+                            float *,
+                            float *,
+                            float *,
+                            float *,
+                            float *,
+                            float *,
+                            float *,
+                            float *,
+                            float *,
+                            float *,
+                            float *));
 
 // Not optimized version for multiple data.
 void

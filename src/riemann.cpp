@@ -219,26 +219,26 @@ starpu(float dl,
 /// \param[out] v - speed y component
 /// \param[out] w - speed z component
 /// \param[out] p - pressure
-static
-void sample(float dl,
-            float ul,
-            float vl,
-            float wl,
-            float pl,
-            float cl,
-            float dr,
-            float ur,
-            float vr,
-            float wr,
-            float pr,
-            float cr,
-            const float pm,
-            const float um,
-            float &d,
-            float &u,
-            float &v,
-            float &w,
-            float &p)
+static void
+sample(float dl,
+       float ul,
+       float vl,
+       float wl,
+       float pl,
+       float cl,
+       float dr,
+       float ur,
+       float vr,
+       float wr,
+       float pr,
+       float cr,
+       const float pm,
+       const float um,
+       float &d,
+       float &u,
+       float &v,
+       float &w,
+       float &p)
 {
     float c, cml, cmr, pml, pmr, shl, shr, sl, sr, stl, str;
 
@@ -384,7 +384,7 @@ void sample(float dl,
 /// \param[out] v - result velocity reference y component
 /// \param[out] w - result velocity reference z component
 /// \param[out] p - result pressure reference
-void
+static void
 riemann(float dl,
         float ul,
         float vl,
@@ -424,7 +424,98 @@ riemann(float dl,
            d, u, v, w, p);
 }
 
-/// \brief Riemann solver.
+/// \brief Riemann not optimize for multiple data.
+///
+/// \param[in] c - sizes
+/// \param[in] dl - left side density
+/// \param[in] ul - left side velocity x component
+/// \param[in] vl - left side velocity y component
+/// \param[in] wl - left side velocity z component
+/// \param[in] pl - left  side pressure
+/// \param[in] dr - right side density
+/// \param[in] ur - right side velocity x component
+/// \param[in] vr - right side velocity y component
+/// \param[in] wr - right side velocity z component
+/// \param[in] pr - right side pressure
+/// \param[out] d - result density reference
+/// \param[out] u - result velocity reference x component
+/// \param[out] v - result velocity reference y component
+/// \param[out] w - result velocity reference z component
+/// \param[out] p - result pressure reference
+void
+riemann_s(int c,
+          float *dl,
+          float *ul,
+          float *vl,
+          float *wl,
+          float *pl,
+          float *dr,
+          float *ur,
+          float *vr,
+          float *wr,
+          float *pr,
+          float *d,
+          float *u,
+          float *v,
+          float *w,
+          float *p)
+{
+    float d_, u_, v_, w_, p_;
+
+    for (int i = 0; i < c; i++)
+    {
+        riemann(dl[i], ul[i], vl[i], wl[i], pl[i],
+                dr[i], ur[i], vr[i], wr[i], pr[i],
+                d_, u_, v_, w_, p_);
+        d[i] = d_;
+        u[i] = u_;
+        v[i] = v_;
+        w[i] = w_;
+        p[i] = p_;
+    }
+}
+
+/// \brief Riemann 16x not optimized solver.
+///
+/// \param[in] dl - left side density
+/// \param[in] ul - left side velocity x component
+/// \param[in] vl - left side velocity y component
+/// \param[in] wl - left side velocity z component
+/// \param[in] pl - left  side pressure
+/// \param[in] dr - right side density
+/// \param[in] ur - right side velocity x component
+/// \param[in] vr - right side velocity y component
+/// \param[in] wr - right side velocity z component
+/// \param[in] pr - right side pressure
+/// \param[out] d - result density reference
+/// \param[out] u - result velocity reference x component
+/// \param[out] v - result velocity reference y component
+/// \param[out] w - result velocity reference z component
+/// \param[out] p - result pressure reference
+void
+riemann_16_s(float *dl,
+             float *ul,
+             float *vl,
+             float *wl,
+             float *pl,
+             float *dr,
+             float *ur,
+             float *vr,
+             float *wr,
+             float *pr,
+             float *d,
+             float *u,
+             float *v,
+             float *w,
+             float *p)
+{
+    riemann_s(16,
+              dl, ul, vl, wl, pl,
+              dr, ur, vr, wr, pr,
+              d, u, v, w, p);
+}
+
+/// \brief Riemann solver for multiple data.
 ///
 /// \param[in] c - cases count
 /// \param[in] dl - left side density
@@ -442,6 +533,94 @@ riemann(float dl,
 /// \param[out] v - result velocity reference y component
 /// \param[out] w - result velocity reference z component
 /// \param[out] p - result pressure reference
+/// \param[in] - solver function fo 16x data
+void
+riemann_n(int c,
+          float *dl,
+          float *ul,
+          float *vl,
+          float *wl,
+          float *pl,
+          float *dr,
+          float *ur,
+          float *vr,
+          float *wr,
+          float *pr,
+          float *d,
+          float *u,
+          float *v,
+          float *w,
+          float *p,
+          int nt,
+          void (*solver_16)(float *,
+                            float *,
+                            float *,
+                            float *,
+                            float *,
+                            float *,
+                            float *,
+                            float *,
+                            float *,
+                            float *,
+                            float *,
+                            float *,
+                            float *,
+                            float *,
+                            float *))
+{
+    int c_tail = c & 0xF;
+    int c_base = c - c_tail;
+
+    //
+    // Main body.
+    //
+
+    omp_set_num_threads(nt);
+
+    #pragma omp parallel
+    {
+        int tn = omp_get_thread_num();
+        int lb = (int)((c / FP16_VECTOR_SIZE) * ((double)tn / (double)nt));
+        int ub = (int)((c / FP16_VECTOR_SIZE) * ((double)(tn + 1) / (double)nt));
+
+        for (int i = lb * FP16_VECTOR_SIZE;
+             i < ub * FP16_VECTOR_SIZE;
+             i += FP16_VECTOR_SIZE)
+        {
+            solver_16(dl + i, ul + i, vl + i, wl + i, pl + i,
+                      dr + i, ur + i, vr + i, wr + i, pr + i,
+                      d + i, u + i, v + i, w + i, p + i);
+        }
+    }
+
+    omp_set_num_threads(1);
+
+    // Process tail.
+    riemann_s(c_tail,
+              dl + c_base, ul + c_base, vl + c_base, wl + c_base, pl + c_base,
+              dr + c_base, ur + c_base, vr + c_base, wr + c_base, pr + c_base,
+              d + c_base, u + c_base, v + c_base, w + c_base, p + c_base);
+}
+
+/// \brief Riemann solver not vectorized for scalar data.
+///
+/// \param[in] c - cases count
+/// \param[in] dl - left side density
+/// \param[in] ul - left side velocity x component
+/// \param[in] vl - left side velocity y component
+/// \param[in] wl - left side velocity z component
+/// \param[in] pl - left  side pressure
+/// \param[in] dr - right side density
+/// \param[in] ur - right side velocity x component
+/// \param[in] vr - right side velocity y component
+/// \param[in] wr - right side velocity z component
+/// \param[in] pr - right side pressure
+/// \param[out] d - result density reference
+/// \param[out] u - result velocity reference x component
+/// \param[out] v - result velocity reference y component
+/// \param[out] w - result velocity reference z component
+/// \param[out] p - result pressure reference
+/// \param[out] nt - number of threads
 void
 riemann_n_s(int c,
             float *dl,
@@ -461,27 +640,10 @@ riemann_n_s(int c,
             float *p,
             int nt)
 {
-    omp_set_num_threads(nt);
-
-    #pragma omp parallel
-    {
-        int tn = omp_get_thread_num();
-        int lb = (int)(c * ((double)tn / (double)nt));
-        int ub = (int)(c * ((double)(tn + 1) / (double)nt));
-        float d_, u_, v_, w_, p_;
-
-        for (int i = lb; i < ub; i++)
-        {
-            riemann(dl[i], ul[i], vl[i], wl[i], pl[i],
-                    dr[i], ur[i], vr[i], wr[i], pr[i],
-                    d_, u_, v_, w_, p_);
-            d[i] = d_;
-            u[i] = u_;
-            v[i] = v_;
-            w[i] = w_;
-            p[i] = p_;
-        }
-    }
-
-    omp_set_num_threads(1);
+    riemann_n(c,
+              dl, ul, vl, wl, pl,
+              dr, ur, vr, wr, pr,
+              d, u, v, w, p,
+              nt,
+              riemann_16_s);
 }

@@ -21,9 +21,6 @@ using namespace std;
 
 #include <immintrin.h>
 
-/// \brief Fp32 vector length.
-#define FP16_VECTOR_SIZE 16
-
 /// \brief Short name for load intrinsic.
 #define LD(ADDR) _mm512_load_ps(ADDR)
 
@@ -528,9 +525,8 @@ riemann_avx512(__m512 dl,
 
 #endif // INTEL
 
-/// \brief Riemann solver.
+/// \brief Riemann solver for 16x data.
 ///
-/// \param[in] c - cases count
 /// \param[in] dl - left side density
 /// \param[in] ul - left side velocity x component
 /// \param[in] vl - left side velocity y component
@@ -547,32 +543,28 @@ riemann_avx512(__m512 dl,
 /// \param[out] w - result velocity reference z component
 /// \param[out] p - result pressure reference
 void
-riemann_n_v(int c,
-            float *dl,
-            float *ul,
-            float *vl,
-            float *wl,
-            float *pl,
-            float *dr,
-            float *ur,
-            float *vr,
-            float *wr,
-            float *pr,
-            float *d,
-            float *u,
-            float *v,
-            float *w,
-            float *p,
-            int nt)
+riemann_16_v(float *dl,
+             float *ul,
+             float *vl,
+             float *wl,
+             float *pl,
+             float *dr,
+             float *ur,
+             float *vr,
+             float *wr,
+             float *pr,
+             float *d,
+             float *u,
+             float *v,
+             float *w,
+             float *p)
 {
 
 #ifndef INTEL
 
-    riemann_n_s(c,
-                dl, ul, vl, wl, pl,
-                dr, ur, vr, wr, pr,
-                d, u, v, w, p,
-                nt);
+    riemann_16_s(dl, ul, vl, wl, pl,
+                 dr, ur, vr, wr, pr,
+                 d, u, v, w, p);
 
 #else
 
@@ -592,46 +584,64 @@ riemann_n_v(int c,
     __assume_aligned(w, 64);
     __assume_aligned(p, 64);
 
-    int c_tail = c & 0xF;
-    int c_base = c - c_tail;
+    __m512 vd, vu, vv, vw, vp;
 
-    //
-    // Main body.
-    //
+    riemann_avx512(LD(dl), LD(ul), LD(vl), LD(wl), LD(pl),
+                   LD(dr), LD(ur), LD(vr), LD(wr), LD(pr),
+                   &vd, &vu, &vv, &vw, &vp);
 
-    omp_set_num_threads(nt);
-
-    #pragma omp parallel
-    {
-        int tn = omp_get_thread_num();
-        int lb = (int)((c / FP16_VECTOR_SIZE) * ((double)tn / (double)nt));
-        int ub = (int)((c / FP16_VECTOR_SIZE) * ((double)(tn + 1) / (double)nt));
-        __m512 vd, vu, vv, vw, vp;
-
-        for (int i = lb * FP16_VECTOR_SIZE;
-             i < ub * FP16_VECTOR_SIZE;
-             i += FP16_VECTOR_SIZE)
-        {
-            riemann_avx512(LD(dl + i), LD(ul + i), LD(vl + i), LD(wl + i), LD(pl + i),
-                           LD(dr + i), LD(ur + i), LD(vr + i), LD(wr + i), LD(pr + i),
-                           &vd, &vu, &vv, &vw, &vp);
-            ST(d + i, vd);
-            ST(u + i, vu);
-            ST(v + i, vv);
-            ST(w + i, vw);
-            ST(p + i, vp);
-        }
-    }
-
-    omp_set_num_threads(1);
-
-    // Tail.
-    riemann(c_tail,
-            dl + c_base, ul + c_base, vl + c_base, wl + c_base, pl + c_base,
-            dr + c_base, ur + c_base, vr + c_base, wr + c_base, pr + c_base,
-            d + c_base, u + c_base, v + c_base, w + c_base, p + c_base,
-            nt);
+    ST(d, vd);
+    ST(u, vu);
+    ST(v, vv);
+    ST(w, vw);
+    ST(p, vp);
 
 #endif // INTEL
 
+}
+
+/// \brief Riemann solver vectorized.
+///
+/// \param[in] c - cases count
+/// \param[in] dl - left side density
+/// \param[in] ul - left side velocity x component
+/// \param[in] vl - left side velocity y component
+/// \param[in] wl - left side velocity z component
+/// \param[in] pl - left  side pressure
+/// \param[in] dr - right side density
+/// \param[in] ur - right side velocity x component
+/// \param[in] vr - right side velocity y component
+/// \param[in] wr - right side velocity z component
+/// \param[in] pr - right side pressure
+/// \param[out] d - result density reference
+/// \param[out] u - result velocity reference x component
+/// \param[out] v - result velocity reference y component
+/// \param[out] w - result velocity reference z component
+/// \param[out] p - result pressure reference
+/// \param[out] nt - number of threads
+void
+riemann_n_v(int c,
+            float *dl,
+            float *ul,
+            float *vl,
+            float *wl,
+            float *pl,
+            float *dr,
+            float *ur,
+            float *vr,
+            float *wr,
+            float *pr,
+            float *d,
+            float *u,
+            float *v,
+            float *w,
+            float *p,
+            int nt)
+{
+    riemann_n(c,
+              dl, ul, vl, wl, pl,
+              dr, ur, vr, wr, pr,
+              d, u, v, w, p,
+              nt,
+              riemann_16_v);
 }
