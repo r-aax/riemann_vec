@@ -12,6 +12,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <omp.h>
 #include "riemann.h"
 
 using namespace std;
@@ -612,7 +613,7 @@ riemann_opt(int c,
              i += FP16_VECTOR_SIZE)
         {
             riemann_16(LD(dl + i), LD(ul + i), LD(vl + i), LD(wl + i), LD(pl + i),
-                       LD(dr + i), LD(ur + i), LD(vr + i), LD(wer + i), LD(pr + i),
+                       LD(dr + i), LD(ur + i), LD(vr + i), LD(wr + i), LD(pr + i),
                        &vd, &vu, &vv, &vw, &vp);
             ST(d + i, vd);
             ST(u + i, vu);
@@ -628,7 +629,8 @@ riemann_opt(int c,
     riemann(c_tail,
             dl + c_base, ul + c_base, vl + c_base, wl + c_base, pl + c_base,
             dr + c_base, ur + c_base, vr + c_base, wr + c_base, pr + c_base,
-            d + c_base, u + c_base, v + c_base, w + c_base, p + c_base);
+            d + c_base, u + c_base, v + c_base, w + c_base, p + c_base,
+            nt);
 
 #endif // INTEL
 
