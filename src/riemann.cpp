@@ -443,23 +443,23 @@ riemann(float dl,
 /// \param[out] w - result velocity reference z component
 /// \param[out] p - result pressure reference
 void
-riemann(int c,
-        float *dl,
-        float *ul,
-        float *vl,
-        float *wl,
-        float *pl,
-        float *dr,
-        float *ur,
-        float *vr,
-        float *wr,
-        float *pr,
-        float *d,
-        float *u,
-        float *v,
-        float *w,
-        float *p,
-        int nt)
+riemann_n_s(int c,
+            float *dl,
+            float *ul,
+            float *vl,
+            float *wl,
+            float *pl,
+            float *dr,
+            float *ur,
+            float *vr,
+            float *wr,
+            float *pr,
+            float *d,
+            float *u,
+            float *v,
+            float *w,
+            float *p,
+            int nt)
 {
     omp_set_num_threads(nt);
 

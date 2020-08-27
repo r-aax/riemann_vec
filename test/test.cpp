@@ -381,14 +381,14 @@ main(int argc,
 
     for (int i = 0; i < REPEATS; i++)
     {
-        times[i] = run(riemann, 1, "not optimized");
+        times[i] = run(riemann_n_s, 1, "n_s");
     }
 
     cout << "----------" << endl;
 
     for (int i = 0; i < REPEATS; i++)
     {
-        times_opt[i] = run(riemann_opt, nt, "optimized");
+        times_opt[i] = run(riemann_n_v, nt, "n_v");
     }
 
     double min_time = array_min(times, REPEATS);

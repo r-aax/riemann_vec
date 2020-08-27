@@ -194,15 +194,15 @@ cnt(int mask)
 /// \param[in] cr - right side sound speed
 /// \param[out] pm - pressure
 static void
-guessp_16(__m512 dl,
-          __m512 ul,
-          __m512 pl,
-          __m512 cl,
-          __m512 dr,
-          __m512 ur,
-          __m512 pr,
-          __m512 cr,
-          __m512 *pm)
+guessp_avx512(__m512 dl,
+              __m512 ul,
+              __m512 pl,
+              __m512 cl,
+              __m512 dr,
+              __m512 ur,
+              __m512 pr,
+              __m512 cr,
+              __m512 *pm)
 {
     __m512 two, half, cup, ppv, pmin, pmax, qmax, pq, um, ptl, ptr, gel, ger, pqcr;
     __mmask16 cond_pvrs, cond_ppv, ncond_ppv;
@@ -267,13 +267,13 @@ guessp_16(__m512 dl,
 /// \param[in] ck - sound speed
 /// \param[in] m - mask for operations
 static void
-prefun_16(__m512 *f,
-          __m512 *fd,
-          __m512 p,
-          __m512 dk,
-          __m512 pk,
-          __m512 ck,
-          __mmask16 m)
+prefun_avx512(__m512 *f,
+              __m512 *fd,
+              __m512 p,
+              __m512 dk,
+              __m512 pk,
+              __m512 ck,
+              __mmask16 m)
 {
     __m512 pratio, ak, bkp, ppk, qrt;
     __mmask16 cond, ncond;
@@ -324,16 +324,16 @@ prefun_16(__m512 *f,
 /// \param[out] p - pressure in star region
 /// \param[out] u - velocity in star region
 static void
-starpu_16(__m512 dl,
-          __m512 ul,
-          __m512 pl,
-          __m512 cl,
-          __m512 dr,
-          __m512 ur,
-          __m512 pr,
-          __m512 cr,
-          __m512 *p,
-          __m512 *u)
+starpu_avx512(__m512 dl,
+              __m512 ul,
+              __m512 pl,
+              __m512 cl,
+              __m512 dr,
+              __m512 ur,
+              __m512 pr,
+              __m512 cr,
+              __m512 *p,
+              __m512 *u)
 {
     __m512 two, tolpre, tolpre2, udiff, pold, fl, fld, fr, frd, change;
     __mmask16 cond_break, cond_neg, m;
@@ -345,15 +345,15 @@ starpu_16(__m512 dl,
     tolpre2 = SET1(5.0e-7);
     udiff = SUB(ur, ul);
 
-    guessp_16(dl, ul, pl, cl, dr, ur, pr, cr, &pold);
+    guessp_avx512(dl, ul, pl, cl, dr, ur, pr, cr, &pold);
 
     // Start with full mask.
     m = 0xFFFF;
 
     for (; (iter <= nriter) && (m != 0x0); iter++)
     {
-        prefun_16(&fl, &fld, pold, dl, pl, cl, m);
-        prefun_16(&fr, &frd, pold, dr, pr, cr, m);
+        prefun_avx512(&fl, &fld, pold, dl, pl, cl, m);
+        prefun_avx512(&fr, &frd, pold, dr, pr, cr, m);
         *p = _mm512_mask_sub_ps(*p, m, pold,
                                 _mm512_mask_div_ps(z, m,
                                                    ADD(ADD(fl, fr), udiff),
@@ -402,25 +402,25 @@ starpu_16(__m512 dl,
 /// \param[out] w - result velocity z component
 /// \param[out] p - result pressure
 static void
-sample_16(__m512 dl,
-          __m512 ul,
-          __m512 vl,
-          __m512 wl,
-          __m512 pl,
-          __m512 cl,
-          __m512 dr,
-          __m512 ur,
-          __m512 vr,
-          __m512 wr,
-          __m512 pr,
-          __m512 cr,
-          __m512 pm,
-          __m512 um,
-          __m512 *d,
-          __m512 *u,
-          __m512 *v,
-          __m512 *w,
-          __m512 *p)
+sample_avx512(__m512 dl,
+              __m512 ul,
+              __m512 vl,
+              __m512 wl,
+              __m512 pl,
+              __m512 cl,
+              __m512 dr,
+              __m512 ur,
+              __m512 vr,
+              __m512 wr,
+              __m512 pr,
+              __m512 cr,
+              __m512 pm,
+              __m512 um,
+              __m512 *d,
+              __m512 *u,
+              __m512 *v,
+              __m512 *w,
+              __m512 *p)
 {
     __m512 c, ums, pms, sh, st, s, uc;
     __mmask16 cond_um, cond_pm, cond_sh, cond_st, cond_s, cond_sh_st;
@@ -487,21 +487,21 @@ sample_16(__m512 dl,
 /// \param[out] w - result velocity reference x component
 /// \param[out] p - result pressure reference
 static void
-riemann_16(__m512 dl,
-           __m512 ul,
-           __m512 vl,
-           __m512 wl,
-           __m512 pl,
-           __m512 dr,
-           __m512 ur,
-           __m512 vr,
-           __m512 wr,
-           __m512 pr,
-           __m512 *d,
-           __m512 *u,
-           __m512 *v,
-           __m512 *w,
-           __m512 *p)
+riemann_avx512(__m512 dl,
+               __m512 ul,
+               __m512 vl,
+               __m512 wl,
+               __m512 pl,
+               __m512 dr,
+               __m512 ur,
+               __m512 vr,
+               __m512 wr,
+               __m512 pr,
+               __m512 *d,
+               __m512 *u,
+               __m512 *v,
+               __m512 *w,
+               __m512 *p)
 {
     __m512 cl, cr, pm, um;
     __mmask16 vacuum_mask;
@@ -519,11 +519,11 @@ riemann_16(__m512 dl,
         exit(1);
     }
 
-    starpu_16(dl, ul, pl, cl, dr, ur, pr, cr, &pm, &um);
-    sample_16(dl, ul, vl, wl, pl, cl,
-              dr, ur, vr, wr, pr, cr,
-              pm, um,
-              d, u, v, w, p);
+    starpu_avx512(dl, ul, pl, cl, dr, ur, pr, cr, &pm, &um);
+    sample_avx512(dl, ul, vl, wl, pl, cl,
+                  dr, ur, vr, wr, pr, cr,
+                  pm, um,
+                  d, u, v, w, p);
 }
 
 #endif // INTEL
@@ -547,7 +547,7 @@ riemann_16(__m512 dl,
 /// \param[out] w - result velocity reference z component
 /// \param[out] p - result pressure reference
 void
-riemann_opt(int c,
+riemann_n_v(int c,
             float *dl,
             float *ul,
             float *vl,
@@ -568,11 +568,11 @@ riemann_opt(int c,
 
 #ifndef INTEL
 
-    riemann(c,
-            dl, ul, vl, wl, pl,
-            dr, ur, vr, wr, pr,
-            d, u, v, w, p,
-            nt);
+    riemann_n_s(c,
+                dl, ul, vl, wl, pl,
+                dr, ur, vr, wr, pr,
+                d, u, v, w, p,
+                nt);
 
 #else
 
@@ -612,9 +612,9 @@ riemann_opt(int c,
              i < ub * FP16_VECTOR_SIZE;
              i += FP16_VECTOR_SIZE)
         {
-            riemann_16(LD(dl + i), LD(ul + i), LD(vl + i), LD(wl + i), LD(pl + i),
-                       LD(dr + i), LD(ur + i), LD(vr + i), LD(wr + i), LD(pr + i),
-                       &vd, &vu, &vv, &vw, &vp);
+            riemann_avx512(LD(dl + i), LD(ul + i), LD(vl + i), LD(wl + i), LD(pl + i),
+                           LD(dr + i), LD(ur + i), LD(vr + i), LD(wr + i), LD(pr + i),
+                           &vd, &vu, &vv, &vw, &vp);
             ST(d + i, vd);
             ST(u + i, vu);
             ST(v + i, vv);
