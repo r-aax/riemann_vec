@@ -69,6 +69,12 @@ ALIGN_64 float uls[] =
 
 };
 
+/// \brief Test data <c>vl</c>.
+ALIGN_64 float vls[TEST_CASES] = { 0.0 };
+
+/// \brief Test data <c>vl</c>.
+ALIGN_64 float wls[TEST_CASES] = { 0.0 };
+
 /// \brief Test data <c>pl</c>.
 ALIGN_64 float pls[] =
 {
@@ -104,6 +110,12 @@ ALIGN_64 float urs[] =
 #endif
 
 };
+
+/// \brief Test data <c>vr</c>.
+ALIGN_64 float vrs[TEST_CASES] = { 0.0 };
+
+/// \brief Test data <c>wr</c>.
+ALIGN_64 float wrs[TEST_CASES] = { 0.0 };
 
 /// \brief Test data <c>pr</c>.
 ALIGN_64 float prs[] =
@@ -159,6 +171,12 @@ ALIGN_64 float ds[TEST_CASES];
 /// \brief Calculated result <c>u</c>.
 ALIGN_64 float us[TEST_CASES];
 
+/// \brief Calculated result <c>v</c>.
+ALIGN_64 float vs[TEST_CASES];
+
+/// \brief Calculated result <c>w</c>.
+ALIGN_64 float ws_[TEST_CASES];
+
 /// \brief Calculated result <c>p</c>.
 ALIGN_64 float ps[TEST_CASES];
 
@@ -172,6 +190,7 @@ check()
     {
         float diff_d = abs(ds[i] - ds_orig[i]);
         float diff_u = abs(us[i] - us_orig[i]);
+        // Do not check components v and w.
         float diff_p = abs(ps[i] - ps_orig[i]);
 
         if (!((diff_d < e) && (diff_u < e) && (diff_p < e)))
@@ -193,6 +212,8 @@ clean()
     {
         ds[i] = 0.0;
         us[i] = 0.0;
+        vs[i] = 0.0;
+        ws_[i] = 0.0;
         ps[i] = 0.0;
     }
 }
@@ -214,6 +235,12 @@ run(void (*solver)(int,
                    float *,
                    float *,
                    float *,
+                   float *,
+                   float *,
+                   float *,
+                   float *,
+                   float *,
+                   float *,
                    float *),
     string str)
 {
@@ -222,7 +249,10 @@ run(void (*solver)(int,
 
     for (int i = 0; i < INNER_REPEATS; i++)
     {
-        solver(TEST_CASES, dls, uls, pls, drs, urs, prs, ds, us, ps);
+        solver(TEST_CASES,
+               dls, uls, vls, wls, pls,
+               drs, urs, vrs, wrs, prs,
+               ds, us, vs, ws_, ps);
     }
 
     double t_end = omp_get_wtime();
@@ -297,27 +327,33 @@ main()
         // Check alignment.
         unsigned long dls_a = (unsigned long)&dls[0];
         unsigned long uls_a = (unsigned long)&uls[0];
+        unsigned long vls_a = (unsigned long)&vls[0];
+        unsigned long wls_a = (unsigned long)&wls[0];
         unsigned long pls_a = (unsigned long)&pls[0];
         unsigned long drs_a = (unsigned long)&drs[0];
         unsigned long urs_a = (unsigned long)&urs[0];
+        unsigned long vrs_a = (unsigned long)&vrs[0];
+        unsigned long wrs_a = (unsigned long)&wrs[0];
         unsigned long prs_a = (unsigned long)&prs[0];
         unsigned long ds_orig_a = (unsigned long)&ds_orig[0];
         unsigned long us_orig_a = (unsigned long)&us_orig[0];
         unsigned long ps_orig_a = (unsigned long)&ps_orig[0];
         unsigned long ds_a = (unsigned long)&ds[0];
         unsigned long us_a = (unsigned long)&us[0];
+        unsigned long vs_a = (unsigned long)&vs[0];
+        unsigned long ws_a = (unsigned long)&ws_[0];
         unsigned long ps_a = (unsigned long)&ps[0];
 
-        if (((dls_a | uls_a | pls_a
-              | drs_a | urs_a | prs_a
+        if (((dls_a | uls_a | vls_a | wls_a | pls_a
+              | drs_a | urs_a | vrs_a | wrs_a | prs_a
               | ds_orig_a | us_orig_a | ps_orig_a
-              | ds_a | us_a | ps_a ) & 0x3F) != 0x0)
+              | ds_a | us_a | vs_a | ws_a | ps_a ) & 0x3F) != 0x0)
         {
             cout << "wrong arrays alignment : " << hex
-                 << &dls[0] << ", " << &uls[0] << ", " << &pls[0] << ", "
-                 << &drs[0] << ", " << &urs[0] << ", " << &prs[0] << ", "
+                 << &dls[0] << ", " << &uls[0] << ", " << &vls[0] << ", " << &wls[0] << ", " << &pls[0] << ", "
+                 << &drs[0] << ", " << &urs[0] << ", " << &vrs[0] << ", " << &wrs[0] << ", " << &prs[0] << ", "
                  << &ds_orig[0] << ", " << &us_orig[0] << ", " << &ps_orig[0] << ", "
-                 << &ds[0] << ", " << &us[0] << ", " << &ps[0]
+                 << &ds[0] << ", " << &us[0] << ", " << &vs[0] << ", " << &ws_[0] << ", " << &ps[0]
                  << endl;
             exit(1);
         }

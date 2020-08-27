@@ -200,31 +200,43 @@ starpu(float dl,
 /// values are d, u, p.
 ///
 /// \param[in] dl - left side density
-/// \param[in] ul - left side speed
+/// \param[in] ul - left side speed x component
+/// \param[in] vl - left side speed y component
+/// \param[in] wl - left side speed z component
 /// \param[in] pl - left side pressure
 /// \param[in] cl - left side sound speed
 /// \param[in] dr - right side density
-/// \param[in] ur - right side speed
+/// \param[in] ur - right side speed x component
+/// \param[in] vr - right side speed y component
+/// \param[in] wr - right side speed z component
 /// \param[in] pr - right side pressure
 /// \param[in] cr - right side sound speed
 /// \param[in] pm - pressure in star region
 /// \param[in] um - speed in star region
 /// \param[out] d - density
-/// \param[out] u - speed
+/// \param[out] u - speed x component
+/// \param[out] v - speed y component
+/// \param[out] w - speed z component
 /// \param[out] p - pressure
 static
 void sample(float dl,
             float ul,
+            float vl,
+            float wl,
             float pl,
             float cl,
             float dr,
             float ur,
+            float vr,
+            float wr,
             float pr,
             float cr,
             const float pm,
             const float um,
             float &d,
             float &u,
+            float &v,
+            float &w,
             float &p)
 {
     float c, cml, cmr, pml, pmr, shl, shr, sl, sr, stl, str;
@@ -232,6 +244,9 @@ void sample(float dl,
     if (0.0 <= um)
     {
         // Sampling point lies to the left of the contact discontinuity.
+        v = vl;
+        w = wl;
+
         if (pm <= pl)
         {
             // Left rarefaction.
@@ -291,6 +306,9 @@ void sample(float dl,
     else
     {
         // Sampling point lies to the right of the contact discontinuity.
+        v = vr;
+        w = wr;
+
         if (pm > pr)
         {
             // Right shock.
@@ -351,23 +369,35 @@ void sample(float dl,
 /// \brief Riemann solver.
 ///
 /// \param[in] dl - left side density
-/// \param[in] ul - left side velocity
+/// \param[in] ul - left side velocity x component
+/// \param[in] vl - left side velocity y component
+/// \param[in] wl - left side velocity z component
 /// \param[in] pl - left  side pressure
 /// \param[in] dr - right side density
-/// \param[in] ur - right side velocity
+/// \param[in] ur - right side velocity x component
+/// \param[in] vr - right side velocity y component
+/// \param[in] wr - right side velocity z component
 /// \param[in] pr - right side pressure
 /// \param[out] d - result density reference
-/// \param[out] u - result velocity reference
+/// \param[out] u - result velocity reference x component
+/// \param[out] v - result velocity reference y component
+/// \param[out] w - result velocity reference z component
 /// \param[out] p - result pressure reference
 void
 riemann(float dl,
         float ul,
+        float vl,
+        float wl,
         float pl,
         float dr,
         float ur,
+        float vr,
+        float wr,
         float pr,
         float &d,
         float &u,
+        float &v,
+        float &w,
         float &p)
 {
     float pm, um, cl, cr;
@@ -387,40 +417,59 @@ riemann(float dl,
 
     // Exact solution.
     starpu(dl, ul, pl, cl, dr, ur, pr, cr, pm, um);
-    sample(dl, ul, pl, cl, dr, ur, pr, cr, pm, um, d, u, p);
+    sample(dl, ul, vl, wl, pl, cl,
+           dr, ur, vr, wr, pr, cr,
+           pm, um,
+           d, u, v, w, p);
 }
 
 /// \brief Riemann solver.
 ///
 /// \param[in] c - cases count
 /// \param[in] dl - left side density
-/// \param[in] ul - left side velocity
+/// \param[in] ul - left side velocity x component
+/// \param[in] vl - left side velocity y component
+/// \param[in] wl - left side velocity z component
 /// \param[in] pl - left  side pressure
 /// \param[in] dr - right side density
-/// \param[in] ur - right side velocity
+/// \param[in] ur - right side velocity x component
+/// \param[in] vr - right side velocity y component
+/// \param[in] wr - right side velocity z component
 /// \param[in] pr - right side pressure
 /// \param[out] d - result density reference
-/// \param[out] u - result velocity reference
+/// \param[out] u - result velocity reference x component
+/// \param[out] v - result velocity reference y component
+/// \param[out] w - result velocity reference z component
 /// \param[out] p - result pressure reference
 void
 riemann(int c,
         float *dl,
         float *ul,
+        float *vl,
+        float *wl,
         float *pl,
         float *dr,
         float *ur,
+        float *vr,
+        float *wr,
         float *pr,
         float *d,
         float *u,
+        float *v,
+        float *w,
         float *p)
 {
-    float d_, u_, p_;
+    float d_, u_, v_, w_, p_;
 
     for (int i = 0; i < c; i++)
     {
-        riemann(dl[i], ul[i], pl[i], dr[i], ur[i], pr[i], d_, u_, p_);
+        riemann(dl[i], ul[i], vl[i], wl[i], pl[i],
+                dr[i], ur[i], vr[i], wr[i], pr[i],
+                d_, u_, v_, w_, p_);
         d[i] = d_;
         u[i] = u_;
+        v[i] = v_;
+        w[i] = w_;
         p[i] = p_;
     }
 }

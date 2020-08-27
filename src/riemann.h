@@ -39,12 +39,18 @@
 void
 riemann(float dl,
         float ul,
+        float vl,
+        float wl,
         float pl,
         float dr,
         float ur,
+        float vr,
+        float wr,
         float pr,
         float &d,
         float &u,
+        float &v,
+        float &w,
         float &p);
 
 // Not optimized version for multiple data.
@@ -52,12 +58,18 @@ void
 riemann(int c,
         float *dl,
         float *ul,
+        float *vl,
+        float *wl,
         float *pl,
         float *dr,
         float *ur,
+        float *vr,
+        float *wr,
         float *pr,
         float *d,
         float *u,
+        float *v,
+        float *w,
         float *p);
 
 // Vectorized version for miltiple data.
@@ -65,12 +77,18 @@ void
 riemann_opt(int c,
             float *dl,
             float *ul,
+            float *vl,
+            float *wl,
             float *pl,
             float *dr,
             float *ur,
+            float *vr,
+            float *wr,
             float *pr,
             float *d,
             float *u,
+            float *v,
+            float *w,
             float *p);
 
 #endif // !RIEMANN_H

@@ -384,29 +384,41 @@ starpu_16(__m512 dl,
 /// values are d, u, p.
 ///
 /// \param[in] dl - left side density
-/// \param[in] ul - left side velocity
+/// \param[in] ul - left side velocity x component
+/// \param[in] vl - left side velocity y component
+/// \param[in] wl - left side velocity z component
 /// \param[in] pl - left side pressure
 /// \param[in] cl - left side sound velocity
 /// \param[in] dr - right side density
-/// \param[in] ur - right side velocity
+/// \param[in] ur - right side velocity x component
+/// \param[in] vr - right side velocity y component
+/// \param[in] wr - right side velocity z component
 /// \param[in] pr - right side pressure
 /// \param[in] cr - right side sound velocity
 /// \param[out] d - result density
-/// \param[out] u - result velocity
+/// \param[out] u - result velocity x component
+/// \param[out] v - result velocity y component
+/// \param[out] w - result velocity z component
 /// \param[out] p - result pressure
 static void
 sample_16(__m512 dl,
           __m512 ul,
+          __m512 vl,
+          __m512 wl,
           __m512 pl,
           __m512 cl,
           __m512 dr,
           __m512 ur,
+          __m512 vr,
+          __m512 wr,
           __m512 pr,
           __m512 cr,
           __m512 pm,
           __m512 um,
           __m512 *d,
           __m512 *u,
+          __m512 *v,
+          __m512 *w,
           __m512 *p)
 {
     __m512 c, ums, pms, sh, st, s, uc;
@@ -416,6 +428,8 @@ sample_16(__m512 dl,
     cond_um = _mm512_cmp_ps_mask(um, z, _MM_CMPINT_LT);
     *d = _mm512_mask_blend_ps(cond_um, dl, dr);
     *u = _mm512_mask_blend_ps(cond_um, ul, ur);
+    *v = _mm512_mask_blend_ps(cond_um, vl, vr);
+    *w = _mm512_mask_blend_ps(cond_um, wl, wr);
     *p = _mm512_mask_blend_ps(cond_um, pl, pr);
     c = _mm512_mask_blend_ps(cond_um, cl, cr);
     ums = um;
@@ -457,23 +471,35 @@ sample_16(__m512 dl,
 /// \brief Riemann solver for 16 cases.
 ///
 /// \param[in] dl - left side density
-/// \param[in] ul - left side velocity
+/// \param[in] ul - left side velocity x component
+/// \param[in] vl - left side velocity y component
+/// \param[in] wl - left side velocity z component
 /// \param[in] pl - left  side pressure
 /// \param[in] dr - right side density
-/// \param[in] ur - right side velocity
+/// \param[in] ur - right side velocity x component
+/// \param[in] vr - right side velocity y component
+/// \param[in] wr - right side velocity z component
 /// \param[in] pr - right side pressure
 /// \param[out] d - result density reference
-/// \param[out] u - result velocity reference
+/// \param[out] u - result velocity reference x component
+/// \param[out] v - result velocity reference x component
+/// \param[out] w - result velocity reference x component
 /// \param[out] p - result pressure reference
 static void
 riemann_16(__m512 dl,
            __m512 ul,
+           __m512 vl,
+           __m512 wl,
            __m512 pl,
            __m512 dr,
            __m512 ur,
+           __m512 vr,
+           __m512 wr,
            __m512 pr,
            __m512 *d,
            __m512 *u,
+           __m512 *v,
+           __m512 *w,
            __m512 *p)
 {
     __m512 cl, cr, pm, um;
@@ -493,7 +519,10 @@ riemann_16(__m512 dl,
     }
 
     starpu_16(dl, ul, pl, cl, dr, ur, pr, cr, &pm, &um);
-    sample_16(dl, ul, pl, cl, dr, ur, pr, cr, pm, um, d, u, p);
+    sample_16(dl, ul, vl, wl, pl, cl,
+              dr, ur, vr, wr, pr, cr,
+              pm, um,
+              d, u, v, w, p);
 }
 
 #endif // INTEL
@@ -502,63 +531,83 @@ riemann_16(__m512 dl,
 ///
 /// \param[in] c - cases count
 /// \param[in] dl - left side density
-/// \param[in] ul - left side velocity
+/// \param[in] ul - left side velocity x component
+/// \param[in] vl - left side velocity y component
+/// \param[in] wl - left side velocity z component
 /// \param[in] pl - left  side pressure
 /// \param[in] dr - right side density
-/// \param[in] ur - right side velocity
+/// \param[in] ur - right side velocity x component
+/// \param[in] vr - right side velocity y component
+/// \param[in] wr - right side velocity z component
 /// \param[in] pr - right side pressure
 /// \param[out] d - result density reference
-/// \param[out] u - result velocity reference
+/// \param[out] u - result velocity reference x component
+/// \param[out] v - result velocity reference y component
+/// \param[out] w - result velocity reference z component
 /// \param[out] p - result pressure reference
 void
 riemann_opt(int c,
             float *dl,
             float *ul,
+            float *vl,
+            float *wl,
             float *pl,
             float *dr,
             float *ur,
+            float *vr,
+            float *wr,
             float *pr,
             float *d,
             float *u,
+            float *v,
+            float *w,
             float *p)
 {
 
 #ifndef INTEL
 
-    riemann(c, dl, ul, pl, dr, ur, pr, d, u, p);
+    riemann(c, dl, ul, vl, wl, pl, dr, ur, vr, wr, pr, d, u, v, w, p);
 
 #else
 
     __assume_aligned(dl, 64);
     __assume_aligned(ul, 64);
+    __assume_aligned(vl, 64);
+    __assume_aligned(wl, 64);
     __assume_aligned(pl, 64);
     __assume_aligned(dr, 64);
     __assume_aligned(ur, 64);
+    __assume_aligned(vr, 64);
+    __assume_aligned(wr, 64);
     __assume_aligned(pr, 64);
     __assume_aligned(d, 64);
     __assume_aligned(u, 64);
+    __assume_aligned(v, 64);
+    __assume_aligned(w, 64);
     __assume_aligned(p, 64);
 
-    __m512 vd, vu, vp;
+    __m512 vd, vu, vv, vw, vp;
     int c_tail = c & 0xF;
     int c_base = c - c_tail;
 
     // Main body.
     for (int i = 0; i < c_base; i += FP16_VECTOR_SIZE)
     {
-        riemann_16(LD(dl + i), LD(ul + i), LD(pl + i),
-                   LD(dr + i), LD(ur + i), LD(pr + i),
-                   &vd, &vu, &vp);
+        riemann_16(LD(dl + i), LD(ul + i), LD(vl + i), LD(wl + i), LD(pl + i),
+                   LD(dr + i), LD(ur + i), LD(vr + i), LD(wer + i), LD(pr + i),
+                   &vd, &vu, &vv, &vw, &vp);
         ST(d + i, vd);
         ST(u + i, vu);
+        ST(v + i, vv);
+        ST(w + i, vw);
         ST(p + i, vp);
     }
 
     // Tail.
     riemann(c_tail,
-            dl + c_base, ul + c_base, pl + c_base,
-            dr + c_base, ur + c_base, pr + c_base,
-            d + c_base, u + c_base, p + c_base);
+            dl + c_base, ul + c_base, vl + c_base, wl + c_base, pl + c_base,
+            dr + c_base, ur + c_base, vr + c_base, wr + c_base, pr + c_base,
+            d + c_base, u + c_base, v + c_base, w + c_base, p + c_base);
 
 #endif // INTEL
 
