@@ -22,25 +22,22 @@ using namespace std;
 #define ALIGN_64
 #endif
 
-/// \brief Repeats count.
-#define REPEATS 3
-
-/// brief Test mode.
-///
-/// 0 - small test mode
-/// 1 - big test mode
-#define TEST_MODE 0
-
 /// \brief Test cases in big mode.
 #define TEST_CASES_BIG 419996
 
 /// \brief Test cases in small mode.
 #define TEST_CASES_SMALL 32
 
+#ifdef TEST_MODE
 #if TEST_MODE == 0
 #define TEST_CASES TEST_CASES_SMALL
-#else
+#elif TEST_MODE == 1
 #define TEST_CASES TEST_CASES_BIG
+#else
+#error "wrong TEST_MODE"
+#endif
+#else
+#error "unknown TEST_MODE"
 #endif
 
 /// \brief Array length.
@@ -220,10 +217,6 @@ run(void (*solver)(int,
                    float *),
     string str)
 {
-
-/// \brief Inner repeats count.
-#define INNER_REPEATS 1
-
     clean();
     double t_start = omp_get_wtime();
 
@@ -281,9 +274,15 @@ main()
     int ps_orig_len = ARR_LEN(ps_orig);
 
     // Check if data elements count is enough for run.
-    if ((TEST_CASES > dls_len) || (TEST_CASES > drs_len) || (TEST_CASES > ds_orig_len)
-        || (TEST_CASES > uls_len) || (TEST_CASES > urs_len) || (TEST_CASES > us_orig_len)
-        || (TEST_CASES > pls_len) || (TEST_CASES > prs_len) || (TEST_CASES > ps_orig_len))
+    if ((TEST_CASES > dls_len)
+        || (TEST_CASES > drs_len)
+        || (TEST_CASES > ds_orig_len)
+        || (TEST_CASES > uls_len)
+        || (TEST_CASES > urs_len)
+        || (TEST_CASES > us_orig_len)
+        || (TEST_CASES > pls_len)
+        || (TEST_CASES > prs_len)
+        || (TEST_CASES > ps_orig_len))
     {
         cout << "error : not enough data for run : TEST_CASES = " << TEST_CASES
              << ", data = { " << dls_len << ", " << drs_len << ", " << ds_orig_len
@@ -296,10 +295,18 @@ main()
 
     {
         // Check alignment.
-        unsigned long dls_a = (unsigned long)&dls[0], uls_a = (unsigned long)&uls[0], pls_a = (unsigned long)&pls[0],
-                      drs_a = (unsigned long)&drs[0], urs_a = (unsigned long)&urs[0], prs_a = (unsigned long)&prs[0],
-                      ds_orig_a = (unsigned long)&ds_orig[0], us_orig_a = (unsigned long)&us_orig[0], ps_orig_a = (unsigned long)&ps_orig[0],
-                      ds_a = (unsigned long)&ds[0], us_a = (unsigned long)&us[0], ps_a = (unsigned long)&ps[0];
+        unsigned long dls_a = (unsigned long)&dls[0];
+        unsigned long uls_a = (unsigned long)&uls[0];
+        unsigned long pls_a = (unsigned long)&pls[0];
+        unsigned long drs_a = (unsigned long)&drs[0];
+        unsigned long urs_a = (unsigned long)&urs[0];
+        unsigned long prs_a = (unsigned long)&prs[0];
+        unsigned long ds_orig_a = (unsigned long)&ds_orig[0];
+        unsigned long us_orig_a = (unsigned long)&us_orig[0];
+        unsigned long ps_orig_a = (unsigned long)&ps_orig[0];
+        unsigned long ds_a = (unsigned long)&ds[0];
+        unsigned long us_a = (unsigned long)&us[0];
+        unsigned long ps_a = (unsigned long)&ps[0];
 
         if (((dls_a | uls_a | pls_a
               | drs_a | urs_a | prs_a
