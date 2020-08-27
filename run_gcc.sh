@@ -6,7 +6,7 @@ rm -f riemann.out
 
 g++ \
     ./src/*.cpp ./test/test.cpp \
-    -DTEST_MODE=0 \
+    -DTEST_MODE=1 \
     -DREPEATS=3 \
     -DINNER_REPEATS=10 \
     -I./src \

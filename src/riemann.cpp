@@ -12,6 +12,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <omp.h>
 #include "riemann.h"
 
 using namespace std;
@@ -457,19 +458,30 @@ riemann(int c,
         float *u,
         float *v,
         float *w,
-        float *p)
+        float *p,
+        int nt)
 {
-    float d_, u_, v_, w_, p_;
+    omp_set_num_threads(nt);
 
-    for (int i = 0; i < c; i++)
+    #pragma omp parallel
     {
-        riemann(dl[i], ul[i], vl[i], wl[i], pl[i],
-                dr[i], ur[i], vr[i], wr[i], pr[i],
-                d_, u_, v_, w_, p_);
-        d[i] = d_;
-        u[i] = u_;
-        v[i] = v_;
-        w[i] = w_;
-        p[i] = p_;
+        int tn = omp_get_thread_num();
+        int lb = (int)(c * ((double)tn / (double)nt));
+        int ub = (int)(c * ((double)(tn + 1) / (double)nt));
+        float d_, u_, v_, w_, p_;
+
+        for (int i = lb; i < ub; i++)
+        {
+            riemann(dl[i], ul[i], vl[i], wl[i], pl[i],
+                    dr[i], ur[i], vr[i], wr[i], pr[i],
+                    d_, u_, v_, w_, p_);
+            d[i] = d_;
+            u[i] = u_;
+            v[i] = v_;
+            w[i] = w_;
+            p[i] = p_;
+        }
     }
+
+    omp_set_num_threads(1);
 }

@@ -561,12 +561,17 @@ riemann_opt(int c,
             float *u,
             float *v,
             float *w,
-            float *p)
+            float *p,
+            int nt)
 {
 
 #ifndef INTEL
 
-    riemann(c, dl, ul, vl, wl, pl, dr, ur, vr, wr, pr, d, u, v, w, p);
+    riemann(c,
+            dl, ul, vl, wl, pl,
+            dr, ur, vr, wr, pr,
+            d, u, v, w, p,
+            nt);
 
 #else
 
@@ -586,22 +591,38 @@ riemann_opt(int c,
     __assume_aligned(w, 64);
     __assume_aligned(p, 64);
 
-    __m512 vd, vu, vv, vw, vp;
     int c_tail = c & 0xF;
     int c_base = c - c_tail;
 
+    //
     // Main body.
-    for (int i = 0; i < c_base; i += FP16_VECTOR_SIZE)
+    //
+
+    omp_set_num_threads(nt);
+
+    #pragma omp parallel
     {
-        riemann_16(LD(dl + i), LD(ul + i), LD(vl + i), LD(wl + i), LD(pl + i),
-                   LD(dr + i), LD(ur + i), LD(vr + i), LD(wer + i), LD(pr + i),
-                   &vd, &vu, &vv, &vw, &vp);
-        ST(d + i, vd);
-        ST(u + i, vu);
-        ST(v + i, vv);
-        ST(w + i, vw);
-        ST(p + i, vp);
+        int tn = omp_get_thread_num();
+        int lb = (int)((c / FP16_VECTOR_SIZE) * ((double)tn / (double)nt));
+        int ub = (int)((c / FP16_VECTOR_SIZE) * ((double)(tn + 1) / (double)nt));
+        __m512 vd, vu, vv, vw, vp;
+
+        for (int i = lb * FP16_VECTOR_SIZE;
+             i < ub * FP16_VECTOR_SIZE;
+             i += FP16_VECTOR_SIZE)
+        {
+            riemann_16(LD(dl + i), LD(ul + i), LD(vl + i), LD(wl + i), LD(pl + i),
+                       LD(dr + i), LD(ur + i), LD(vr + i), LD(wer + i), LD(pr + i),
+                       &vd, &vu, &vv, &vw, &vp);
+            ST(d + i, vd);
+            ST(u + i, vu);
+            ST(v + i, vv);
+            ST(w + i, vw);
+            ST(p + i, vp);
+        }
     }
+
+    omp_set_num_threads(1);
 
     // Tail.
     riemann(c_tail,

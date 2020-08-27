@@ -70,7 +70,8 @@ riemann(int c,
         float *u,
         float *v,
         float *w,
-        float *p);
+        float *p,
+        int nt);
 
 // Vectorized version for miltiple data.
 void
@@ -89,6 +90,7 @@ riemann_opt(int c,
             float *u,
             float *v,
             float *w,
-            float *p);
+            float *p,
+            int nt);
 
 #endif // !RIEMANN_H

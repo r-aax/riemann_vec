@@ -221,6 +221,7 @@ clean()
 /// \brief Run riemann solver test and print information.
 ///
 /// \param[in] solver - solver function
+/// \param[in] nt - number of threads
 /// \param[in] str - description
 ///
 /// \return
@@ -241,7 +242,9 @@ run(void (*solver)(int,
                    float *,
                    float *,
                    float *,
-                   float *),
+                   float *,
+                   int),
+    int nt,
     string str)
 {
     clean();
@@ -252,7 +255,8 @@ run(void (*solver)(int,
         solver(TEST_CASES,
                dls, uls, vls, wls, pls,
                drs, urs, vrs, wrs, prs,
-               ds, us, vs, ws_, ps);
+               ds, us, vs, ws_, ps,
+               nt);
     }
 
     double t_end = omp_get_wtime();
@@ -265,8 +269,8 @@ run(void (*solver)(int,
 
 /// \brief Min value in array.
 ///
-/// \param d - array
-/// \param c - element count
+/// \param[in] d - array
+/// \param[in] c - element count
 ///
 /// \return
 /// Min value.
@@ -288,8 +292,12 @@ array_min(double *d,
 }
 
 /// \brief Test.
+///
+/// \parameter[in] argc - arguments count
+/// \parameter[in] argv - arguments
 int
-main()
+main(int argc,
+     char **argv)
 {
     double times[REPEATS];
     double times_opt[REPEATS];
@@ -302,6 +310,13 @@ main()
     int pls_len = ARR_LEN(pls);
     int prs_len = ARR_LEN(prs);
     int ps_orig_len = ARR_LEN(ps_orig);
+
+    // Threads count processing.
+    int nt = 1;
+    if (argc > 1)
+    {
+        nt = atoi(argv[1]);
+    }
 
     // Check if data elements count is enough for run.
     if ((TEST_CASES > dls_len)
@@ -362,17 +377,18 @@ main()
 #endif
 
     cout << "test begin : " << TEST_CASES << " test cases" << endl;
+    cout << "num_threads = " << nt << endl;
 
     for (int i = 0; i < REPEATS; i++)
     {
-        times[i] = run(riemann, "not optimized");
+        times[i] = run(riemann, nt, "not optimized");
     }
 
     cout << "----------" << endl;
 
     for (int i = 0; i < REPEATS; i++)
     {
-        times_opt[i] = run(riemann_opt, "optimized");
+        times_opt[i] = run(riemann_opt, nt, "optimized");
     }
 
     double min_time = array_min(times, REPEATS);
