@@ -381,7 +381,7 @@ main(int argc,
 
     for (int i = 0; i < REPEATS; i++)
     {
-        times[i] = run(riemann, nt, "not optimized");
+        times[i] = run(riemann, 1, "not optimized");
     }
 
     cout << "----------" << endl;
