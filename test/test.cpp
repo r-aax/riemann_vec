@@ -399,19 +399,27 @@ main(int argc,
         times[i] = run(riemann_n_s, 1, "n_s");
     }
 
-    cout << "----------" << endl;
-
-    for (int i = 0; i < REPEATS; i++)
+    for (int cur_nt = 1; cur_nt <= nt; cur_nt++)
     {
-        times_opt[i] = run(riemann_n_v, nt, "n_v");
-    }
+        cout << "----------" << endl;
 
-    double min_time = array_min(times, REPEATS);
-    double min_time_opt = array_min(times_opt, REPEATS);
-    double time_reduce = ((min_time - min_time_opt) / min_time) * 100.0;
-    double speedup_x = min_time / min_time_opt;
-    cout << "test done : time_reduce = " << setprecision(2) << time_reduce
-         << "%, speedup_x = " << setprecision(3) << speedup_x << endl;
+        for (int i = 0; i < REPEATS; i++)
+        {
+            times_opt[i] = run(riemann_n_v, cur_nt, "n_v");
+        }
+
+        double min_time = array_min(times, REPEATS);
+        double min_time_opt = array_min(times_opt, REPEATS);
+        double time_reduce = ((min_time - min_time_opt) / min_time) * 100.0;
+        double speedup_x = min_time / min_time_opt;
+    
+        cout << "test done : "
+             << "nt = " << cur_nt
+             << ", min_time = " << min_time
+             << ", min_time_opt = " << min_time_opt
+             << ", time_reduce = " << setprecision(2) << time_reduce
+             << "%, speedup_x = " << setprecision(3) << speedup_x << endl;
+    }
 
     return 0;
 }
