@@ -6,7 +6,8 @@ rm -f riemann.out
 
 g++ \
     ./src/*.cpp ./test/test.cpp \
-    -DTEST_MODE=1 \
+    -DOPENMP_RACE \
+    -DTEST_MODE=0 \
     -DREPEATS=3 \
     -DINNER_REPEATS=10 \
     -I./src \
