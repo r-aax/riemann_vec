@@ -377,7 +377,22 @@ main(int argc,
 #endif
 
     cout << "test begin : " << TEST_CASES << " test cases" << endl;
-    cout << "num_threads = " << nt << endl;
+
+#if !defined(OPENMP_CHUNKS) && !defined(OPENMP_INTERLEAVE) && !defined(OPENMP_RACE)
+#error "unknown form OpenMP distribution organization"
+#endif
+
+#ifdef OPENMP_CHUNKS
+    cout << "num_threads = 1 vs " << nt << " (OPENMP_CHUNKS)" << endl;
+#endif // OPENMP_CHUNKS
+
+#ifdef OPENMP_INTERLEAVE
+    cout << "num_threads = 1 vs " << nt << " (OPENMP_INTERLEAVE)" << endl;
+#endif // OPENMP_INTERLEAVE
+
+#ifdef OPENMP_RACE
+    cout << "num_threads = 1 vs " << nt << " (OPENMP_RACE)" << endl;
+#endif // OPENMP_RACE
 
     for (int i = 0; i < REPEATS; i++)
     {
