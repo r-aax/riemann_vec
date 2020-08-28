@@ -603,6 +603,7 @@ riemann_n(int c,
     #pragma omp parallel
     {
         int tn = omp_get_thread_num();
+
         for (int i = tn * FP16_VECTOR_SIZE;
              i < c_base;
              i += nt * FP16_VECTOR_SIZE)
@@ -615,7 +616,43 @@ riemann_n(int c,
 #endif // OPENMP_INTERLEAVE
 
 #ifdef OPENMP_RACE
-#error "OPENMP_RACE is not implemented"
+
+    // Global counter.
+    int g = 0;
+
+    #pragma omp_parallel
+    {
+        // Local calculation position.
+        int i = 0;
+        bool is_break = false;
+
+        while (true)
+        {
+            #pragma omp critical
+            {
+                // Check end of loop condition.
+                // Exit if it is.
+                if (g >= c_base)
+                {
+                    is_break = true;
+                }
+                else
+                {
+                    i = g;
+                    g += FP16_VECTOR_SIZE;
+                }
+            }
+
+            if (is_break)
+            {
+                break;
+            }
+
+            solver_16(dl + i, ul + i, vl + i, wl + i, pl + i,
+                      dr + i, ur + i, vr + i, wr + i, pr + i,
+                      d + i, u + i, v + i, w + i, p + i);
+        }
+    }
 #endif // OPENMP_RACE
 
     omp_set_num_threads(1);
