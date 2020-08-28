@@ -20,9 +20,9 @@ mpiicc \
     -I src \
     test/*.cpp src/*.cpp \
     $FLAGS \
-    -DOPENMP_RACE \
+    -DOPENMP_INTERLEAVE \
     -DTEST_MODE=1 \
     -DREPEATS=3 \
     -DINNER_REPEATS=10 \
-    -o ${EXE}_race \
+    -o ${EXE} \
     -lm -fopenmp
