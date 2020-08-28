@@ -620,7 +620,7 @@ riemann_n(int c,
     // Global counter.
     int g = 0;
 
-    #pragma omp_parallel
+    #pragma omp parallel
     {
         // Local calculation position.
         int i = 0;
