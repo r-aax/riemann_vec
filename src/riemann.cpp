@@ -577,7 +577,8 @@ riemann_n(int c,
 
     omp_set_num_threads(nt);
 
-#if !defined(OPENMP_CHUNKS) && !defined(OPENMP_INTERLEAVE) && !defined(OPENMP_RACE)
+#if !defined(OPENMP_CHUNKS) && !defined(OPENMP_INTERLEAVE) && !defined(OPENMP_RACE) \
+    && !defined(OPENMP_CHUNKS_AUTO) && !defined(OPENMP_INTERLEAVE_AUTO) && !defined(OPENMP_RACE_AUTO)
 #error "unknown form OpenMP distribution organization"
 #endif
 
@@ -598,6 +599,24 @@ riemann_n(int c,
         }
     }
 #endif // OPENMP_CHUNKS
+
+#ifdef OPENMP_CHUNKS_AUTO
+    #pragma omp parallel for schedule(static)
+#endif // OPENMP_CHUNKS_AUTO
+#ifdef OPENMP_INTERLEAVE_AUTO
+    #pragma omp parallel for schedule(static, 1)
+#endif // OPENMP_INTERLEAVE_AUTO
+#ifdef OPENMP_RACE_AUTO
+    #pragma omp parallel for schedule(dynamic, 1)
+#endif // OPENMP_RACE_AUTO
+    for (int i = 0;
+	 i < c_base;
+	 i += FP16_VECTOR_SIZE)
+        {
+            solver_16(dl + i, ul + i, vl + i, wl + i, pl + i,
+                      dr + i, ur + i, vr + i, wr + i, pr + i,
+                      d + i, u + i, v + i, w + i, p + i);
+        }
 
 #ifdef OPENMP_INTERLEAVE
     #pragma omp parallel
@@ -654,6 +673,7 @@ riemann_n(int c,
         }
     }
 #endif // OPENMP_RACE
+
 
     omp_set_num_threads(1);
 
