@@ -533,7 +533,7 @@ riemann_16_s(float *dl,
 /// \param[out] v - result velocity reference y component
 /// \param[out] w - result velocity reference z component
 /// \param[out] p - result pressure reference
-/// \param[in] - solver function fo 16x data
+/// \param[in] - solver function for 16x data
 void
 riemann_n(int c,
           float *dl,
