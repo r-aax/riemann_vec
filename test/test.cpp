@@ -378,7 +378,8 @@ main(int argc,
 
     cout << "test begin : " << TEST_CASES << " test cases" << endl;
 
-#if !defined(OPENMP_CHUNKS) && !defined(OPENMP_INTERLEAVE) && !defined(OPENMP_RACE)
+#if !defined(OPENMP_CHUNKS) && !defined(OPENMP_INTERLEAVE) && !defined(OPENMP_RACE) \
+    && !defined(OPENMP_CHUNKS_AUTO) && !defined(OPENMP_INTERLEAVE_AUTO) && !defined(OPENMP_RACE_AUTO)
 #error "unknown form OpenMP distribution organization"
 #endif
 
@@ -393,6 +394,18 @@ main(int argc,
 #ifdef OPENMP_RACE
     cout << "num_threads = 1 vs " << nt << " (OPENMP_RACE)" << endl;
 #endif // OPENMP_RACE
+
+#ifdef OPENMP_CHUNKS_AUTO
+    cout << "num_threads = 1 vs " << nt << " (OPENMP_CHUNKS_AUTO)" << endl;
+#endif // OPENMP_CHUNKS_AUTO
+
+#ifdef OPENMP_INTERLEAVE_AUTO
+    cout << "num_threads = 1 vs " << nt << " (OPENMP_INTERLEAVE_AUTO)" << endl;
+#endif // OPENMP_INTERLEAVE_AUTO
+
+#ifdef OPENMP_RACE_AUTO
+    cout << "num_threads = 1 vs " << nt << " (OPENMP_RACE_AUTO)" << endl;
+#endif // OPENMP_RACE_AUTO
 
     for (int i = 0; i < REPEATS; i++)
     {
