@@ -299,8 +299,8 @@ int
 main(int argc,
      char **argv)
 {
-    double times[REPEATS];
-    double times_opt[REPEATS];
+    double times[REPEATS_ORIG];
+    double times_opt[REPEATS_OPT];
     int dls_len = ARR_LEN(dls);
     int drs_len = ARR_LEN(drs);
     int ds_orig_len = ARR_LEN(ds_orig);
@@ -312,10 +312,15 @@ main(int argc,
     int ps_orig_len = ARR_LEN(ps_orig);
 
     // Threads count processing.
-    int nt = 1;
+    int nt_min = 1, nt_max = 1;
     if (argc > 1)
     {
-        nt = atoi(argv[1]);
+        nt_min = atoi(argv[1]);
+        nt_max = atoi(argv[1]);
+    }
+    if (argc > 2)
+    {
+        nt_max = atoi(argv[2]);
     }
 
     // Check if data elements count is enough for run.
@@ -383,36 +388,36 @@ main(int argc,
 #endif
 
 #ifdef OPENMP_CHUNKS
-    cout << "num_threads = 1 vs " << nt << " (OPENMP_CHUNKS)" << endl;
+    cout << "num_threads = 1 vs [" << nt_min << ", " << nt_max << "] (OPENMP_CHUNKS)" << endl;
 #endif // OPENMP_CHUNKS
 
 #ifdef OPENMP_INTERLEAVE
-    cout << "num_threads = 1 vs " << nt << " (OPENMP_INTERLEAVE)" << endl;
+    cout << "num_threads = 1 vs [" << nt_min << ", " << nt_max << "] (OPENMP_INTERLEAVE)" << endl;
 #endif // OPENMP_INTERLEAVE
 
 #ifdef OPENMP_RACE
-    cout << "num_threads = 1 vs " << nt << " (OPENMP_RACE)" << endl;
+    cout << "num_threads = 1 vs [" << nt_min << ", " << nt_max << "] (OPENMP_RACE)" << endl;
 #endif // OPENMP_RACE
 
-    for (int i = 0; i < REPEATS; i++)
+    for (int i = 0; i < REPEATS_ORIG; i++)
     {
         times[i] = run(riemann_n_s, 1, "n_s");
     }
 
-    for (int cur_nt = 1; cur_nt <= nt; cur_nt++)
+    for (int cur_nt = nt_min; cur_nt <= nt_max; cur_nt++)
     {
         cout << "----------" << endl;
 
-        for (int i = 0; i < REPEATS; i++)
+        for (int i = 0; i < REPEATS_OPT; i++)
         {
             times_opt[i] = run(riemann_n_v, cur_nt, "n_v");
         }
 
-        double min_time = array_min(times, REPEATS);
-        double min_time_opt = array_min(times_opt, REPEATS);
+        double min_time = array_min(times, REPEATS_ORIG);
+        double min_time_opt = array_min(times_opt, REPEATS_OPT);
         double time_reduce = ((min_time - min_time_opt) / min_time) * 100.0;
         double speedup_x = min_time / min_time_opt;
-    
+
         cout << "test done : "
              << "nt = " << cur_nt
              << ", min_time = " << min_time
