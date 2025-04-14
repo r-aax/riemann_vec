@@ -1,1 +1,1 @@
-# riemann_vec
+# Vectorized Riemann Solver.
