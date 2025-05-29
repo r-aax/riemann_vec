@@ -2,7 +2,7 @@
 
 ## Functions profile.
 
-![profile](exe_prof.png "Functions profile")
+<img src="exe_prof.png" width="30%">
 
 ## Vectorization effectiveness.
 
