@@ -6,23 +6,14 @@ EXE="riemann.out"
 
 rm -f $EXE
 
-#mpiicc \
-#    -I src \
-#    test/*.cpp src/*.cpp \
-#    -DTEST_MODE=1 \
-#    -DREPEATS=3 \
-#    -DINNER_REPEATS=10 \
-#    $FLAGS $INFO_FLAGS \
-#    -lm -fopenmp \
-#    -S
-
 mpiicc \
     -I src \
     test/*.cpp src/*.cpp \
     $FLAGS \
-    -DOPENMP_RACE \
+    -DOPENMP_CHUNKS \
     -DTEST_MODE=1 \
-    -DREPEATS=3 \
-    -DINNER_REPEATS=10 \
-    -o ${EXE}_race \
+    -DREPEATS_ORIG=1 \
+    -DREPEATS_OPT=10 \
+    -DINNER_REPEATS=100 \
+    -o ${EXE} \
     -lm -fopenmp
